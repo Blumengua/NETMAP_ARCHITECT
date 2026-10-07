@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>NetMap Architect - Ultimate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #0f172a; user-select: none; font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+    #viewport { width: 100vw; height: 100vh; position: relative; cursor: grab; }
+    #viewport:active { cursor: grabbing; }
+    
+    #workspace {
+      position: absolute; top: 0; left: 0; width: 100000px; height: 100000px;
+      transform-origin: 0 0;
+      background-image: radial-gradient(#334155 1px, transparent 1px);
+      background-size: 25px 25px;
+      transition: background-image 0.3s;
+    }
+
+    .device-node { position: absolute; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.6); border-radius: 8px; border: 1px solid #334155; background: #1e293b; transition: width 0.2s, background-color 0.3s, border-color 0.3s, opacity 0.3s, box-shadow 0.3s; }
+    .drag-handle { cursor: move; transition: background-color 0.3s; }
+    
+    /* STYLE SPÉCIFIQUE POUR LA ZONE DE TEXTE */
+    .zone-node { background: transparent !important; box-shadow: none !important; border: 2px dashed #475569 !important; }
+    
+    body.linking-mode #viewport { cursor: crosshair !important; }
+    .device-node.link-target { border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+    .device-node.link-target:hover { background: #0f172a; cursor: crosshair; }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+    .link-group-container { pointer-events: auto; transition: background-color 0.3s, border-color 0.3s, opacity 0.3s; }
+    .link-group-container:hover { z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
+
+    .route-input { background: transparent; border: none; color: #94a3b8; width: 100%; min-width: 0; outline: none; font-family: monospace; font-size: 13px; text-align: center; }
+    .route-input:focus { color: #ffffff; }
+
+    #modal-overlay { backdrop-filter: blur(4px); }
+    [title] { cursor: help; }
+
+    /* ANIMATIONS & MISE EN ÉVIDENCE VLAN */
+    @keyframes path-pulse {
+      0% { stroke-width: 3; filter: drop-shadow(0 0 2px currentColor); opacity: 1; }
+      50% { stroke-width: 6; filter: drop-shadow(0 0 12px currentColor); opacity: 1; }
+      100% { stroke-width: 3; filter: drop-shadow(0 0 2px currentColor); opacity: 1; }
+    }
+    @keyframes badge-pulse {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.4); }
+    }
+    .vlan-path-highlight { animation: path-pulse 1.5s infinite; z-index: 100; }
+    .vlan-badge-highlight { animation: badge-pulse 1.5s infinite; transform: scale(1.15); z-index: 10; }
+    .dimmed { opacity: 0.15 !important; transition: opacity 0.4s ease; }
+    line { transition: opacity 0.3s ease, stroke-width 0.3s ease, stroke 0.3s ease; }
+
+    /* EFFET SPLASH */
+    #vlan-splash {
+      position: fixed; top: 15%; left: 50%; transform: translateX(-50%) scale(0.9);
+      opacity: 0; pointer-events: none; z-index: 9999;
+      background: rgba(15, 23, 42, 0.95); border: 2px solid; backdrop-filter: blur(8px);
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #vlan-splash.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+    /* THÈME CLAIR PRO */
+    body.theme-light { background-color: #f3f4f6 !important; color: #111827 !important; }
+    body.theme-light #workspace { background-image: radial-gradient(#d1d5db 2px, transparent 2px) !important; }
+    body.theme-light .bg-slate-900\/95, body.theme-light .bg-slate-900, body.theme-light .bg-slate-800 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: #e5e7eb !important; }
+    body.theme-light .bg-slate-950, body.theme-light .device-node { background-color: #ffffff !important; border-color: #d1d5db !important; }
+    body.theme-light .device-node { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important; }
+    body.theme-light .zone-node { border-color: #9ca3af !important; background-color: transparent !important; box-shadow: none !important; }
+    body.theme-light .text-white { color: #111827 !important; font-weight: 800; }
+    body.theme-light .text-slate-300, body.theme-light .text-slate-400, body.theme-light .text-slate-500 { color: #4b5563 !important; font-weight: 600; }
+    body.theme-light input:not(.vlan-input-color) { background-color: #f9fafb !important; color: #111827 !important; border-color: #d1d5db !important; }
+    body.theme-light .zone-node input { background-color: transparent !important; border: none !important; }
+    body.theme-light .route-input:not(.vlan-input-color) { border: 1px dashed #e5e7eb !important; }
+    body.theme-light .link-group-container { background-color: rgba(255, 255, 255, 0.95) !important; border-color: #d1d5db !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+    body.theme-light .drag-handle input { border: none !important; }
+    body.theme-light .bg-sky-900 { background-color: #e0f2fe !important; border-color: #bae6fd !important; color: #0284c7 !important; }
+    body.theme-light .bg-emerald-900 { background-color: #d1fae5 !important; border-color: #a7f3d0 !important; color: #059669 !important; }
+    body.theme-light .bg-purple-900 { background-color: #f3e8ff !important; border-color: #e9d5ff !important; color: #9333ea !important; }
+    body.theme-light .bg-orange-900 { background-color: #ffedd5 !important; border-color: #fed7aa !important; color: #ea580c !important; }
+    body.theme-light .bg-slate-700 { background-color: #f3f4f6 !important; border-color: #d1d5db !important; color: #4b5563 !important; }
+    body.theme-light .vlan-input-color[style*="#1e293b"] { background-color: #f9fafb !important; color: #6b7280 !important; border: none !important; }
+    body.theme-light button { color: #4b5563; } body.theme-light button:hover { color: #111827; }
+    body.theme-light .text-sky-400 { color: #0284c7 !important; } body.theme-light .text-emerald-400 { color: #059669 !important; } body.theme-light .text-purple-400 { color: #9333ea !important; } body.theme-light .text-orange-400 { color: #ea580c !important; }
+
+    /* THÈME GRIS NEUTRE (VS CODE) */
+    body.theme-neutral { background-color: #1e1e1e !important; color: #cccccc !important; }
+    body.theme-neutral #workspace { background-image: radial-gradient(#333333 2px, transparent 2px) !important; }
+    body.theme-neutral .bg-slate-900\/95, body.theme-neutral .bg-slate-900, body.theme-neutral .bg-slate-800 { background-color: rgba(37, 37, 38, 0.95) !important; border-color: #454545 !important; }
+    body.theme-neutral .bg-slate-950, body.theme-neutral .device-node { background-color: #252526 !important; border-color: #454545 !important; }
+    body.theme-neutral .device-node { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5) !important; }
+    body.theme-neutral .zone-node { border-color: #454545 !important; background-color: transparent !important; box-shadow: none !important; }
+    body.theme-neutral .text-white { color: #ffffff !important; }
+    body.theme-neutral .text-slate-300, body.theme-neutral .text-slate-400, body.theme-neutral .text-slate-500 { color: #999999 !important; }
+    body.theme-neutral input:not(.vlan-input-color) { background-color: #1e1e1e !important; color: #cccccc !important; border-color: #3c3c3c !important; }
+    body.theme-neutral .zone-node input { background-color: transparent !important; border: none !important; }
+    body.theme-neutral .route-input:not(.vlan-input-color) { border: 1px dashed #454545 !important; }
+    body.theme-neutral .link-group-container { background-color: rgba(37, 37, 38, 0.95) !important; border-color: #454545 !important; }
+    body.theme-neutral .drag-handle input { border: none !important; }
+    body.theme-neutral .bg-sky-900 { background-color: #263238 !important; border-color: #454545 !important; color: #5ccfe6 !important; }
+    body.theme-neutral .bg-emerald-900 { background-color: #20332a !important; border-color: #454545 !important; color: #8bd49c !important; }
+    body.theme-neutral .bg-purple-900 { background-color: #332638 !important; border-color: #454545 !important; color: #d4bfff !important; }
+    body.theme-neutral .bg-orange-900 { background-color: #382c20 !important; border-color: #454545 !important; color: #ffb86c !important; }
+    body.theme-neutral .bg-slate-700 { background-color: #2d2d30 !important; border-color: #454545 !important; color: #cccccc !important; }
+    body.theme-neutral .vlan-input-color[style*="#1e293b"] { background-color: #1e1e1e !important; color: #999999 !important; }
+    body.theme-neutral .text-sky-400 { color: #5ccfe6 !important; } body.theme-neutral .text-emerald-400 { color: #8bd49c !important; } body.theme-neutral .text-purple-400 { color: #d4bfff !important; } body.theme-neutral .text-orange-400 { color: #ffb86c !important; }
+
+    /* MODE IMPRESSION */
+    body.print-mode { background-color: #ffffff !important; color: #000000 !important; }
+    body.print-mode #workspace { background-image: none !important; background-color: #ffffff !important; }
+    body.print-mode .device-node { background-color: #ffffff !important; border: 2px solid #000000 !important; box-shadow: none !important; }
+    body.print-mode .zone-node { border-color: #000000 !important; }
+    body.print-mode .device-node .drag-handle { background-color: #f8fafc !important; border-bottom: 2px solid #000000 !important; color: #000000 !important; }
+    body.print-mode .zone-node .drag-handle { border-bottom: none !important; background-color: transparent !important; }
+    body.print-mode .device-node * { color: #000000 !important; font-weight: bold; }
+    body.print-mode .bg-slate-800, body.print-mode .bg-slate-950, body.print-mode .bg-slate-900\/50 { background-color: transparent !important; border-color: #94a3b8 !important; }
+    body.print-mode input:not(.vlan-input-color) { color: #000000 !important; border: 1px solid #cbd5e1 !important; background-color: #ffffff !important; border-radius: 4px; }
+    body.print-mode .zone-node input { border: none !important; }
+    body.print-mode .route-input { border: 1px dashed #cbd5e1 !important; }
+    body.print-mode .link-group-container { background-color: #ffffff !important; border: 2px solid #000000 !important; box-shadow: none !important; }
+    body.print-mode .link-group-container * { color: #000000 !important; }
+    body.print-mode .link-group-container input { border: 1px solid #94a3b8 !important; font-weight: bold; }
+    
+    body.print-mode input.vlan-input-color[style*="#1e293b"], body.print-mode input.vlan-input-color[style*="rgb(30, 41, 59)"], body.print-mode input.vlan-input-color[style*="#1e1e1e"], body.print-mode input.vlan-input-color[style*="#f9fafb"] { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1 !important; }
+
+    @media print {
+      @page { margin: 10mm; size: landscape; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { background-color: #ffffff !important; }
+      #toolbar, #vlan-legend, .no-print, #linking-indicator { display: none !important; }
+      #viewport { overflow: visible !important; position: static !important; width: auto !important; height: auto !important; }
+      #workspace { overflow: visible !important; }
+    }
+  </style>
+</head>
+<body class="text-slate-100 theme-default">
+
+  <div id="vlan-splash" class="px-10 py-6 rounded-2xl flex flex-col items-center justify-center no-print"></div>
+
+  <header id="toolbar" class="fixed top-0 left-0 right-0 bg-slate-900/95 border-b border-slate-700 px-6 py-3 flex items-center justify-between z-50 shadow-xl transition-colors">
+    <div class="flex items-center gap-6">
+      <!-- C'EST ICI LE BOUTON SECRET (app-title) -->
+      <span id="app-title" class="font-black text-sky-400 text-xl tracking-tight cursor-pointer hover:text-green-400 transition-colors" title="Clique 3 fois...">NETMAP <span class="text-white font-light">PRO</span></span>
+      
+      <div class="h-6 w-px bg-slate-700 transition-colors"></div>
+      <span class="text-xs text-slate-400 hidden xl:inline-block font-medium">💡 Astuce : <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-sky-400">Alt</kbd> + Glisser pour dupliquer</span>
+      
+      <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-700 shadow-inner transition-colors ml-2">
+        <button onclick="addDevice('switch')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-sky-400 text-sm font-bold transition">🖧 Switch</button>
+        <button onclick="addDevice('server')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-purple-400 text-sm font-bold transition">🖥️ Serveur</button>
+        <button onclick="addDevice('router')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-emerald-400 text-sm font-bold transition">🌐 Routeur</button>
+        <button onclick="addDevice('firewall')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-orange-400 text-sm font-bold transition">🧱 Firewall</button>
+        <button onclick="addDevice('endpoint')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white text-sm font-bold transition">🖲️ Périphérique</button>
+        <div class="h-4 w-px bg-slate-700 mx-1"></div>
+        <button onclick="addDevice('zone')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white text-sm font-bold transition border border-dashed border-slate-600">📝 Zone</button>
+      </div>
+
+      <span id="linking-indicator" class="hidden bg-sky-500/20 text-sky-400 border border-sky-500/50 px-3 py-1.5 rounded-md text-sm font-bold animate-pulse">
+        🔗 Cliquez sur l'équipement de destination... (Échap pour annuler)
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <select onchange="changeTheme(this.value)" class="bg-slate-800 text-slate-300 px-3 py-2 rounded-md text-sm font-bold border border-slate-700 outline-none cursor-pointer hover:text-white transition shadow-sm">
+        <option value="theme-default">🌙 Nuit (Standard)</option>
+        <option value="theme-light">☁️ Clair (Pro)</option>
+        <option value="theme-neutral">💻 Gris Neutre (Code)</option>
+      </select>
+      
+      <div class="h-6 w-px bg-slate-700 mx-1 transition-colors"></div>
+
+      <div class="flex bg-slate-800 rounded-md border border-slate-700 overflow-hidden shadow-sm transition-colors">
+        <button onclick="setZoom(0.1)" class="px-3 py-1.5 hover:bg-slate-700 font-bold text-slate-300">➕</button>
+        <div id="zoomLevel" class="px-3 py-1.5 text-sm font-mono bg-slate-900 w-16 text-center text-white transition-colors">100%</div>
+        <button onclick="setZoom(-0.1)" class="px-3 py-1.5 hover:bg-slate-700 font-bold text-slate-300">➖</button>
+      </div>
+      
+      <div class="h-6 w-px bg-slate-700 mx-1 transition-colors"></div>
+      
+      <button onclick="exportJSON()" class="text-emerald-400 hover:text-emerald-300 px-3 py-2 text-sm font-bold transition">💾 Sauver</button>
+      <label class="text-sky-400 hover:text-sky-300 px-3 py-2 text-sm font-bold cursor-pointer transition">
+        📂 Charger <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
+      </label>
+      <label class="text-purple-400 hover:text-purple-300 px-3 py-2 text-sm font-bold cursor-pointer transition border-l border-slate-700 pl-4 ml-1">
+        ➕ Fusionner <input type="file" class="hidden" accept=".json" onchange="mergeJSON(event)">
+      </label>
+      
+      <button id="btn-print-mode" onclick="togglePrintMode()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-md text-sm font-bold shadow-lg ml-2 transition">
+        🖨️ Mode Impression
+      </button>
+    </div>
+  </header>
+
+  <div id="vlan-legend" class="fixed bottom-4 left-4 bg-slate-900/95 border border-slate-700 p-4 rounded-xl shadow-2xl z-40 w-72 no-print backdrop-blur transition-colors">
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-sm font-black text-slate-400 tracking-wider">📖 LÉGENDE VLANS</span>
+      <div class="flex gap-1">
+        <button onclick="openVlanDictModal()" class="text-sky-400 hover:text-sky-300 text-sm font-bold bg-slate-800 px-2 py-1 rounded">Éditer</button>
+        <button onclick="toggleLegend()" id="btn-toggle-legend" class="text-slate-400 hover:text-white text-sm font-bold bg-slate-800 px-2 py-1 rounded">_</button>
+      </div>
+    </div>
+    <div id="legend-list" class="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar mt-3"></div>
+  </div>
+
+  <div id="viewport">
+    <div id="workspace">
+      <svg id="cablesLayer" class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible"></svg>
+      <div id="devicesLayer" class="absolute inset-0 w-full h-full z-10"></div>
+      <div id="badgesLayer" class="absolute inset-0 w-full h-full pointer-events-none z-20"></div>
+    </div>
+  </div>
+
+  <!-- MODAL ÉDITION LIEN -->
+  <div id="link-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
+    <div id="modal-overlay" class="absolute inset-0 bg-slate-950/80" onmousedown="closeModal()"></div>
+    <div class="relative bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-[450px] overflow-hidden flex flex-col transition-colors">
+      <div class="bg-slate-900 border-b border-slate-700 px-5 py-4 flex justify-between items-center transition-colors">
+        <h3 class="font-bold text-white text-lg">⚙️ Configuration VLANs</h3>
+        <button onmousedown="closeModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5">
+        <label class="block text-sm text-slate-400 font-bold mb-2 uppercase">VLANs / Tags (Texte libre) :</label>
+        <input type="text" id="inp-vlan-text" placeholder="ex: 10, 20, 100-105, TRUNK" class="w-full bg-slate-950 border border-slate-600 rounded px-3 py-2 text-base text-white focus:border-sky-500 outline-none font-mono transition-colors">
+      </div>
+      <div class="bg-slate-900 border-t border-slate-700 px-5 py-4 flex justify-end gap-2 transition-colors">
+        <button onmousedown="closeModal()" class="text-slate-300 hover:text-white px-4 py-2 text-sm font-bold">Annuler</button>
+        <button onmousedown="saveLinkVlan()" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-2 rounded text-sm font-bold">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DICTIONNAIRE VLAN -->
+  <div id="dict-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
+    <div class="absolute inset-0 bg-slate-950/80" onmousedown="closeDictModal()"></div>
+    <div class="relative bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-[450px] overflow-hidden flex flex-col transition-colors">
+      <div class="bg-slate-900 border-b border-slate-700 px-5 py-4 flex justify-between items-center transition-colors">
+        <h3 class="font-bold text-white text-lg">📖 Dictionnaire des VLANs</h3>
+        <button onmousedown="closeDictModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5">
+        <div id="dict-list" class="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar mb-4"></div>
+        <button onmousedown="addDictLine()" class="w-full bg-slate-700 hover:bg-slate-600 text-sky-400 py-3 rounded text-sm font-bold border border-slate-600 border-dashed transition-colors">+ Ajouter un VLAN</button>
+      </div>
+      <div class="bg-slate-900 border-t border-slate-700 px-5 py-4 flex justify-end transition-colors">
+        <button onmousedown="saveDict()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded text-sm font-bold">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let state = { 
+      devices: {}, links: [], counter: 0,
+      linkBoxes: {},
+      vlanDict: { 10: "Data Users", 20: "Voix sur IP", 99: "Management" }
+    };
+    let view = { scale: 1, panX: -50000, panY: -50000, isDragging: false, startX: 0, startY: 0 };
+    let prePrintView = null;
+    let linkingFrom = null; let editingLinkId = null; 
+    let legendCollapsed = false;
+
+    let highlightedVlan = null;
+    let splashTimeout = null;
+
+    let dragLinkPair = null;
+    let dragLinkStartX = 0; let dragLinkStartY = 0; let dragLinkInitX = 0; let dragLinkInitY = 0;
+    
+    // Variables globales pour le drag des équipements (optimisation)
+    let draggingDevice = null;
+    let dragOffsetX = 0; let dragOffsetY = 0;
+
+    let viewportClickStartX = 0; let viewportClickStartY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const workspace = document.getElementById('workspace');
+
+    function showSplash(vid) {
+      const splash = document.getElementById('vlan-splash');
+      const name = state.vlanDict[vid] || '';
+      const color = getVlanColor(vid);
+      splash.innerHTML = `
+        <div class="text-6xl font-black mb-2 text-white drop-shadow-xl tracking-tighter">VLAN ${vid}</div>
+        ${name ? `<div class="text-2xl font-bold text-slate-300">${name}</div>` : ''}
+      `;
+      splash.style.borderColor = color;
+      splash.style.boxShadow = `0 25px 60px -10px ${color}60, inset 0 0 0 2px ${color}`;
+      splash.classList.add('show');
+      if(splashTimeout) clearTimeout(splashTimeout);
+      splashTimeout = setTimeout(() => { splash.classList.remove('show'); }, 1500); 
+    }
+
+    window.toggleVlanHighlight = function(vid, event) {
+      if (event) event.stopPropagation();
+      if (highlightedVlan === vid) { highlightedVlan = null; } 
+      else { highlightedVlan = vid; showSplash(vid); }
+      drawLinks(); renderLegend();
+    };
+
+    function updateTransform() {
+      workspace.style.transform = `translate(${view.panX}px, ${view.panY}px) scale(${view.scale})`;
+      document.getElementById('zoomLevel').innerText = Math.round(view.scale * 100) + '%';
+      drawLinks();
+    }
+    
+    function setZoom(delta, mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2) { 
+      const oldScale = view.scale;
+      const newScale = Math.min(Math.max(0.1, view.scale + delta), 3); 
+      if (oldScale === newScale) return;
+      const workspaceX = (mouseX - view.panX) / oldScale;
+      const workspaceY = (mouseY - view.panY) / oldScale;
+      view.scale = newScale;
+      view.panX = mouseX - workspaceX * view.scale;
+      view.panY = mouseY - workspaceY * view.scale;
+      updateTransform(); 
+    }
+    
+    viewport.addEventListener('wheel', (e) => { 
+      if(e.target.closest('.device-node') || e.target.closest('.link-group-container') || e.target.closest('.fixed')) return; 
+      e.preventDefault(); setZoom(e.deltaY < 0 ? 0.1 : -0.1, e.clientX, e.clientY); 
+    });
+    
+    viewport.addEventListener('mousedown', (e) => { 
+      viewportClickStartX = e.clientX; viewportClickStartY = e.clientY;
+      if(e.target.closest('.device-node') || e.target.closest('header') || e.target.closest('.link-group-container') || e.target.closest('.fixed')) return; 
+      view.isDragging = true; view.startX = e.clientX - view.panX; view.startY = e.clientY - view.panY; 
+    });
+
+    window.addEventListener('mousemove', (e) => { 
+      // Gestion Globale Dragging Équipement (Magnétisme 25px)
+      if (draggingDevice) {
+        let rawX = e.clientX / view.scale - dragOffsetX;
+        let rawY = e.clientY / view.scale - dragOffsetY;
+        
+        // Snap to grid (25px)
+        state.devices[draggingDevice].x = Math.round(rawX / 25) * 25;
+        state.devices[draggingDevice].y = Math.round(rawY / 25) * 25;
+        
+        const el = document.getElementById(draggingDevice);
+        if(el) {
+          el.style.left = `${state.devices[draggingDevice].x}px`;
+          el.style.top = `${state.devices[draggingDevice].y}px`;
+        }
+        drawLinks();
+        return;
+      }
+
+      // Gestion Dragging Boite de lien (Magnétisme 25px)
+      if (dragLinkPair) {
+        const dx = (e.clientX / view.scale) - dragLinkStartX; 
+        const dy = (e.clientY / view.scale) - dragLinkStartY;
+        let rawX = dragLinkInitX + dx;
+        let rawY = dragLinkInitY + dy;
+
+        state.linkBoxes[dragLinkPair].x = Math.round(rawX / 25) * 25; 
+        state.linkBoxes[dragLinkPair].y = Math.round(rawY / 25) * 25;
+        
+        drawLinks(); return;
+      }
+
+      if (!view.isDragging) return; 
+      view.panX = e.clientX - view.startX; view.panY = e.clientY - view.startY; updateTransform(); 
+    });
+    
+    window.addEventListener('mouseup', (e) => { 
+      if (draggingDevice) {
+        const el = document.getElementById(draggingDevice);
+        if(el) el.style.zIndex = '';
+        draggingDevice = null;
+      }
+
+      const dist = Math.hypot(e.clientX - viewportClickStartX, e.clientY - viewportClickStartY);
+      if (dist < 5 && !e.target.closest('.device-node') && !e.target.closest('header') && !e.target.closest('.link-group-container') && !e.target.closest('.fixed') && !e.target.closest('.export-badge')) {
+        if (highlightedVlan !== null) { highlightedVlan = null; drawLinks(); renderLegend(); }
+      }
+      view.isDragging = false; dragLinkPair = null; 
+    });
+
+    window.startDragLinkBox = function(pair, event) {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return;
+      event.stopPropagation();
+      if (!state.linkBoxes) state.linkBoxes = {};
+      if (!state.linkBoxes[pair]) {
+        const [idA, idB] = pair.split('|');
+        const c1 = getCenterPos(document.getElementById(idA)); const c2 = getCenterPos(document.getElementById(idB));
+        state.linkBoxes[pair] = { x: (c1.x + c2.x)/2, y: (c1.y + c2.y)/2 };
+      }
+      dragLinkPair = pair; dragLinkStartX = event.clientX / view.scale; dragLinkStartY = event.clientY / view.scale;
+      dragLinkInitX = state.linkBoxes[pair].x; dragLinkInitY = state.linkBoxes[pair].y;
+    }
+
+    window.resetLinkBox = function(pair, event) { event.stopPropagation(); if (state.linkBoxes && state.linkBoxes[pair]) { delete state.linkBoxes[pair]; drawLinks(); } }
+
+    function changeTheme(themeName) {
+      document.body.classList.remove('theme-light', 'theme-neutral');
+      if (themeName !== 'theme-default') { document.body.classList.add(themeName); }
+      setTimeout(drawLinks, 50);
+    }
+
+    function togglePrintMode() {
+      const body = document.body; const btn = document.getElementById('btn-print-mode');
+      if (!body.classList.contains('print-mode')) {
+        prePrintView = { ...view }; body.classList.add('print-mode');
+        btn.innerHTML = '🔙 Quitter Impression'; btn.classList.replace('bg-slate-600', 'bg-rose-600'); btn.classList.replace('hover:bg-slate-500', 'hover:bg-rose-500');
+        const deviceIds = Object.keys(state.devices);
+        if (deviceIds.length > 0) {
+          let minX = Infinity, minY = Infinity;
+          deviceIds.forEach(id => { const d = state.devices[id]; if (d.x < minX) minX = d.x; if (d.y < minY) minY = d.y; });
+          view.scale = 1; view.panX = -minX + 50; view.panY = -minY + 100; updateTransform();
+        }
+      } else {
+        body.classList.remove('print-mode'); btn.innerHTML = '🖨️ Mode Impression';
+        btn.classList.replace('bg-rose-600', 'bg-slate-600'); btn.classList.replace('hover:bg-rose-500', 'hover:bg-slate-500');
+        if (prePrintView) { view = { ...prePrintView }; updateTransform(); }
+      }
+    }
+
+    const VLAN_PALETTE = ['#38bdf8', '#4ade80', '#facc15', '#f87171', '#c084fc', '#fb923c', '#2dd4bf', '#818cf8', '#a3e635', '#f472b6', '#fbbf24', '#34d399'];
+    function getVlanColor(vlanId) { return VLAN_PALETTE[vlanId % VLAN_PALETTE.length]; }
+    function getVlanName(id) { return state.vlanDict[id] ? `VLAN ${id} : ${state.vlanDict[id]}` : `VLAN ${id}`; }
+
+    function toggleLegend() {
+      legendCollapsed = !legendCollapsed;
+      document.getElementById('legend-list').style.display = legendCollapsed ? 'none' : 'flex';
+      document.getElementById('btn-toggle-legend').innerText = legendCollapsed ? '□' : '_';
+    }
+
+    function renderLegend() {
+      const list = document.getElementById('legend-list');
+      const keys = Object.keys(state.vlanDict).sort((a,b) => a-b);
+      if(keys.length === 0) { list.innerHTML = `<div class="text-sm text-slate-500 italic">Aucun VLAN défini.</div>`; return; }
+      list.innerHTML = keys.map(id => {
+        const isHigh = (highlightedVlan == id);
+        const bg = isHigh ? 'bg-slate-800' : 'hover:bg-slate-800/50';
+        const pulse = isHigh ? 'vlan-badge-highlight ring-2 ring-white' : '';
+        const dim = (highlightedVlan && !isHigh) ? 'opacity-30' : '';
+        return `
+        <div class="flex items-center gap-3 p-1.5 rounded cursor-pointer transition-colors ${bg} ${dim}" onmousedown="toggleVlanHighlight(${id}, event)" title="Surligner le parcours de ce VLAN">
+          <div class="w-6 h-4 rounded shadow-sm border border-slate-800 no-print ${pulse}" style="background-color: ${getVlanColor(id)}"></div>
+          <div class="text-sm font-mono font-bold ${isHigh ? 'text-white' : 'text-slate-400'} w-10">${id}</div>
+          <div class="text-sm text-slate-300 truncate">${state.vlanDict[id]}</div>
+        </div>`
+      }).join('');
+    }
+
+    function openVlanDictModal() {
+      const list = document.getElementById('dict-list');
+      list.innerHTML = Object.keys(state.vlanDict).map(id => `
+        <div class="flex gap-2 dict-row">
+          <input class="w-20 bg-slate-950 text-white text-sm font-mono border border-slate-600 rounded px-2 py-1 dict-id transition-colors" value="${id}" placeholder="ID">
+          <input class="flex-1 bg-slate-950 text-white text-sm border border-slate-600 rounded px-2 py-1 dict-name transition-colors" value="${state.vlanDict[id]}" placeholder="Nom">
+          <button onmousedown="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 px-2 font-bold text-lg">✕</button>
+        </div>`).join('');
+      document.getElementById('dict-modal').classList.remove('hidden');
+    }
+
+    function addDictLine() {
+      document.getElementById('dict-list').insertAdjacentHTML('beforeend', `
+        <div class="flex gap-2 dict-row">
+          <input class="w-20 bg-slate-950 text-white text-sm font-mono border border-slate-600 rounded px-2 py-1 dict-id transition-colors" placeholder="ID">
+          <input class="flex-1 bg-slate-950 text-white text-sm border border-slate-600 rounded px-2 py-1 dict-name transition-colors" placeholder="Nom">
+          <button onmousedown="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 px-2 font-bold text-lg">✕</button>
+        </div>`);
+    }
+
+    function saveDict() {
+      state.vlanDict = {};
+      document.querySelectorAll('.dict-row').forEach(row => {
+        const id = row.querySelector('.dict-id').value.trim(); const name = row.querySelector('.dict-name').value.trim();
+        if(id && !isNaN(id)) state.vlanDict[id] = name;
+      });
+      closeDictModal(); renderLegend(); drawLinks();
+    }
+    function closeDictModal() { document.getElementById('dict-modal').classList.add('hidden'); }
+
+    // ==========================================
+    // PARSEUR INTELLIGENT
+    // ==========================================
+    function parseVlanText(text) {
+      if (!text || text.trim() === "") return null;
+      
+      const parts = text.split(',');
+      const validParts = parts.filter(p => p.trim() !== "");
+      if (validParts.length === 0) return null;
+      
+      const isSingle = validParts.length === 1;
+
+      const dotsHtml = []; const badgesHtml = []; const printHtml = [];
+      const detectedVlans = []; 
+
+      validParts.forEach(trimmed => {
+        const matchSingle = trimmed.match(/^([a-zA-Z]*[-_]?)?\s*([0-9]+)$/);
+        const matchRange = trimmed.match(/^([a-zA-Z]*[-_]?)?\s*([0-9]+)\s*-\s*([0-9]+)$/);
+        
+        if (matchSingle) {
+          const prefix = matchSingle[1] ? matchSingle[1].toUpperCase() : '';
+          const vlanId = parseInt(matchSingle[2]);
+          const color = getVlanColor(vlanId);
+          const tooltip = getVlanName(vlanId);
+          detectedVlans.push({ id: vlanId, color: color });
+          
+          const isHigh = (highlightedVlan == vlanId);
+          const dimClass = (highlightedVlan && !isHigh) ? 'opacity-30' : '';
+          
+          const badgeActive = isHigh ? 'vlan-badge-highlight ring-2 ring-white text-black' : 'text-slate-900';
+          const badgeElement = `<span onmousedown="toggleVlanHighlight(${vlanId}, event)" title="${tooltip} (Clic pour surligner)" class="px-1.5 py-0.5 rounded text-[11px] font-black shadow-sm cursor-pointer transition-all duration-300 hover:scale-110 ${badgeActive} ${dimClass}" style="background-color: ${color}">${prefix}${vlanId}</span>`;
+          
+          if (isSingle) { dotsHtml.push(badgeElement); } 
+          else {
+            const dotActive = isHigh ? 'ring-2 ring-white scale-[1.3] z-10' : '';
+            dotsHtml.push(`<div onmousedown="toggleVlanHighlight(${vlanId}, event)" title="${tooltip}" class="w-3 h-3 rounded-full shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.5] border border-black/20 ${dotActive} ${dimClass}" style="background-color: ${color}"></div>`);
+          }
+          badgesHtml.push(badgeElement);
+          printHtml.push(`<span class="px-1 border border-black rounded text-[11px] font-bold" style="background-color: ${color}">${prefix}${vlanId}</span>`);
+        } 
+        else if (matchRange) {
+          const prefix = matchRange[1] ? matchRange[1].toUpperCase() : '';
+          const start = parseInt(matchRange[2]); const end = parseInt(matchRange[3]);
+          const color = getVlanColor(start); 
+          
+          let rangeHasHighlight = false;
+          for(let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+             detectedVlans.push({ id: i, color: color });
+             if (highlightedVlan == i) rangeHasHighlight = true;
+          }
+
+          const isHigh = rangeHasHighlight;
+          const dimClass = (highlightedVlan && !isHigh) ? 'opacity-30' : '';
+
+          const badgeActive = isHigh ? 'vlan-badge-highlight ring-2 ring-white text-black' : 'text-slate-900';
+          const badgeElement = `<span onmousedown="toggleVlanHighlight(${start}, event)" title="Plage VLAN ${start} à ${end}" class="px-1.5 py-0.5 rounded text-[11px] font-black shadow-sm cursor-pointer transition-all duration-300 hover:scale-110 ${badgeActive} ${dimClass}" style="background-color: ${color}">${prefix}${start}-${end}</span>`;
+          
+          if (isSingle) { dotsHtml.push(badgeElement); } 
+          else {
+            const dotActive = isHigh ? 'ring-2 ring-white scale-[1.3] z-10' : '';
+            dotsHtml.push(`<div onmousedown="toggleVlanHighlight(${start}, event)" title="Plage VLAN ${start} à ${end}" class="w-5 h-3 rounded-full shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.2] border border-black/20 ${dotActive} ${dimClass}" style="background-color: ${color}"></div>`);
+          }
+          badgesHtml.push(badgeElement);
+          printHtml.push(`<span class="px-1 border border-black rounded text-[11px] font-bold bg-white text-black">${prefix}${start}-${end}</span>`);
+        }
+        else {
+          const dimFallback = highlightedVlan ? 'opacity-30' : '';
+          const badgeElement = `<span class="px-1.5 py-0.5 rounded text-[11px] font-bold text-slate-300 bg-slate-700 border border-slate-600 shadow-sm transition-opacity duration-300 ${dimFallback}">${trimmed}</span>`;
+          
+          if (isSingle) { dotsHtml.push(badgeElement); }
+          else { dotsHtml.push(`<div title="${trimmed}" class="w-3 h-3 rounded-sm bg-slate-600 border border-slate-400 shadow-sm cursor-help transition-all duration-300 hover:bg-slate-500 ${dimFallback}"></div>`); }
+          
+          badgesHtml.push(badgeElement);
+          printHtml.push(`<span class="px-1 border border-black rounded text-[11px] font-bold bg-white text-black">${trimmed}</span>`);
+        }
+      });
+
+      return { 
+        isSingle: isSingle,
+        dotsHtml: dotsHtml.join(''), 
+        badgesHtml: badgesHtml.join(' '), 
+        printHtml: printHtml.join(' '), 
+        detectedVlans: detectedVlans 
+      };
+    }
+
+    const DEVICE_TYPES = {
+      'switch': { icon: '🖧', color: 'bg-sky-900', border: 'border-sky-500', name: 'SWITCH', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '360px' },
+      'router': { icon: '🌐', color: 'bg-emerald-900', border: 'border-emerald-500', name: 'ROUTEUR', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '360px' },
+      'server': { icon: '🖥️', color: 'bg-purple-900', border: 'border-purple-500', name: 'SERVEUR', hasVlans: false, confTitle: 'Configuration IP', col1: 'Interface', col2: 'Adresse IP', width: '340px' },
+      'firewall': { icon: '🧱', color: 'bg-orange-900', border: 'border-orange-500', name: 'FIREWALL', hasVlans: true, confTitle: 'Routage / Règles', col1: 'Zone / Réseau', col2: 'Passerelle', width: '360px' },
+      'endpoint': { icon: '🖲️', color: 'bg-slate-700', border: 'border-slate-500', name: 'PÉRIPHÉRIQUE', isEndpoint: true, width: '280px' },
+      'zone': { icon: '📝', color: 'bg-transparent', border: 'border-transparent', name: 'TITRE DE LA ZONE', isZone: true, width: '400px' }
+    };
+
+    function addDevice(type, data = null) {
+      let id, name, x, y, conf, vlans, collapsed, vlanTags, ip;
+      if (data) { ({ id, type, name, x, y, conf, vlans, collapsed, vlanTags, ip } = data); } 
+      else {
+        state.counter++; id = `dev_${Date.now()}`; name = `${DEVICE_TYPES[type].name}-${state.counter}`;
+        
+        // Spawn au centre mais aligné sur la grille (Magnétisme)
+        let rawX = (-view.panX + window.innerWidth / 2) / view.scale - 100;
+        let rawY = (-view.panY + window.innerHeight / 2) / view.scale - 50;
+        x = Math.round(rawX / 25) * 25;
+        y = Math.round(rawY / 25) * 25;
+        
+        conf = []; vlans = []; collapsed = false; vlanTags = ""; ip = "";
+      }
+      if(!type) type = 'switch'; if(!conf) conf = []; if(!vlans) vlans = []; if(collapsed === undefined) collapsed = false; if(!vlanTags) vlanTags = ""; if(!ip) ip = "";
+      state.devices[id] = { id, type, name, x, y, conf, vlans, collapsed, vlanTags, ip };
+      renderDevice(id);
+    }
+
+    function toggleDeviceCollapse(id, event) { event.stopPropagation(); state.devices[id].collapsed = !state.devices[id].collapsed; renderDevice(id); }
+    window.updateDeviceTags = function(id, val) { state.devices[id].vlanTags = val; renderDevice(id); drawLinks(); }
+    window.updateDeviceIp = function(id, val) { state.devices[id].ip = val; }
+
+    function renderDevice(id) {
+      const d = state.devices[id]; const t = DEVICE_TYPES[d.type];
+      let el = document.getElementById(id); if(el) el.remove(); 
+      el = document.createElement('div'); el.id = id;
+      el.className = "device-node flex flex-col pointer-events-auto";
+      el.style.width = d.collapsed ? '240px' : t.width; el.style.left = `${d.x}px`; el.style.top = `${d.y}px`;
+
+      el.onmousedown = (e) => { if (linkingFrom && linkingFrom !== id && !t.isZone) { createNewLink(linkingFrom, id); cancelLinking(); } };
+      const roundedClass = d.collapsed ? 'rounded-lg border-b' : 'rounded-t-lg border-b';
+
+      if (t.isZone) {
+        el.classList.add('zone-node');
+        el.innerHTML = `
+          <div class="drag-handle p-4 flex flex-col justify-center items-center relative group min-h-[100px]">
+            <input type="text" value="${d.name}" onchange="updateDeviceName('${id}', this.value)" class="bg-transparent text-3xl font-black text-white focus:outline-none w-full pointer-events-auto text-center placeholder-slate-600 transition-colors" placeholder="TITRE">
+            <input type="text" value="${d.ip || ''}" onchange="updateDeviceIp('${id}', this.value)" class="bg-transparent text-base font-bold text-slate-400 focus:outline-none w-full pointer-events-auto text-center placeholder-slate-600 mt-2 transition-colors" placeholder="Sous-titre / Commentaire">
+            <button onmousedown="deleteDevice('${id}', event);" class="absolute top-2 right-2 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition no-print font-bold text-xl">✕</button>
+          </div>
+        `;
+      } else {
+        let bodyHtml = '';
+        if (!d.collapsed) {
+          if (t.isEndpoint) {
+            bodyHtml = `
+              <div class="p-3 bg-slate-800 border-b border-slate-700 pointer-events-auto transition-colors">
+                <input type="text" value="${d.ip || ''}" onchange="updateDeviceIp('${id}', this.value)" class="w-full bg-slate-950 border border-slate-600 rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-mono transition-colors text-center" placeholder="Adresse IP / MAC / Info">
+              </div>
+              <button onmousedown="startLinking('${id}', event);" class="w-full bg-slate-900/50 hover:bg-slate-700 py-3 text-sm font-bold text-slate-400 hover:text-sky-400 rounded-b-lg transition pointer-events-auto flex justify-center items-center gap-2 no-print transition-colors">🔗 Câbler</button>
+            `;
+          } else {
+            let vlanBlock = '';
+            if (t.hasVlans) {
+              vlanBlock = `
+                <div class="p-3 bg-slate-800 border-b border-slate-700 pointer-events-auto transition-colors">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs uppercase font-bold text-slate-400 tracking-wider">Interfaces Réseau</span>
+                    <button onmousedown="addVlanInt('${id}', event);" class="text-xs bg-slate-700 hover:bg-slate-600 text-sky-400 px-2 py-0.5 rounded font-bold transition no-print">+ Int</button>
+                  </div>
+                  <div id="vlans_${id}" class="flex flex-col gap-1 pr-1"></div>
+                </div>
+              `;
+            }
+
+            const parsedTags = parseVlanText(d.vlanTags || "");
+            
+            const tagCloudHtml = `
+              <div class="p-3 bg-slate-800 border-b border-slate-700 pointer-events-auto transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs uppercase font-bold text-slate-400 tracking-wider">Liste VLAN</span>
+                </div>
+                <input type="text" value="${d.vlanTags || ''}" onchange="updateDeviceTags('${id}', this.value)" class="w-full bg-slate-950 border border-slate-600 rounded px-2 py-1.5 mb-2 text-xs focus:outline-none focus:border-sky-500 font-mono transition-colors text-left text-slate-300" placeholder="ex: 10, 20, 100-110, TRUNK">
+                <div class="flex flex-wrap gap-1 min-h-[20px] items-center">
+                  ${parsedTags ? `
+                    <div class="flex flex-wrap gap-1 no-print">${parsedTags.badgesHtml}</div>
+                    <div class="hidden print:flex flex-wrap gap-1">${parsedTags.printHtml}</div>
+                  ` : '<span class="text-xs text-slate-500/50 italic pointer-events-none">Saisir des tags au-dessus...</span>'}
+                </div>
+              </div>
+            `;
+
+            bodyHtml = `
+              ${vlanBlock}
+              <div class="p-3 bg-slate-800 border-b border-slate-700 pointer-events-auto transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs uppercase font-bold text-slate-400 tracking-wider">${t.confTitle}</span>
+                  <button onmousedown="addConfLine('${id}', event);" class="text-xs bg-slate-700 hover:bg-slate-600 text-sky-400 px-2 py-0.5 rounded font-bold transition no-print">+ Ligne</button>
+                </div>
+                <div id="conf_${id}" class="flex flex-col gap-1 pr-1"></div>
+              </div>
+              ${tagCloudHtml}
+              <button onmousedown="startLinking('${id}', event);" class="w-full bg-slate-900/50 hover:bg-slate-700 py-3 text-sm font-bold text-slate-400 hover:text-sky-400 rounded-b-lg transition pointer-events-auto flex justify-center items-center gap-2 no-print transition-colors">🔗 Câbler</button>
+            `;
+          }
+        }
+
+        el.innerHTML = `
+          <div class="drag-handle ${t.color} ${t.border} p-3 ${roundedClass} flex justify-between items-center">
+            <div class="flex items-center gap-2 overflow-hidden flex-1">
+              <span class="text-2xl no-print">${t.icon}</span>
+              <input type="text" value="${d.name}" onchange="updateDeviceName('${id}', this.value)" class="bg-transparent text-base font-bold text-white focus:outline-none w-full pointer-events-auto min-w-0 truncate text-left">
+            </div>
+            <div class="flex gap-1 items-center ml-2 shrink-0">
+              <button onmousedown="toggleDeviceCollapse('${id}', event);" class="text-slate-400 hover:text-white pointer-events-auto px-2 font-bold no-print text-lg">${d.collapsed ? '▼' : '▲'}</button>
+              <button onmousedown="deleteDevice('${id}', event);" class="text-slate-300 hover:text-red-400 pointer-events-auto px-2 font-bold no-print text-lg">✕</button>
+            </div>
+          </div>
+          ${bodyHtml}
+        `;
+      }
+
+      document.getElementById('devicesLayer').appendChild(el);
+      if(!d.collapsed && !t.isEndpoint && !t.isZone) { if(t.hasVlans) renderVlanInt(id); renderConf(id); }
+      makeDeviceDraggable(el, id); setTimeout(drawLinks, 10); 
+    }
+
+    function updateDeviceName(id, newName) { state.devices[id].name = newName; drawLinks(); }
+    function addVlanInt(id, event) { event.stopPropagation(); state.devices[id].vlans.push({ id: `v_${Date.now()}`, vid: "10", ip: "192.168.10.254/24" }); renderVlanInt(id); }
+    function updateVlanInt(devId, vlanId, field, value) { const v = state.devices[devId].vlans.find(x => x.id === vlanId); if(v) v[field] = value; if(field === 'vid') renderVlanInt(devId); drawLinks(); }
+    function deleteVlanInt(devId, vlanId, event) { event.stopPropagation(); state.devices[devId].vlans = state.devices[devId].vlans.filter(x => x.id !== vlanId); renderVlanInt(devId); drawLinks(); }
+    
+    function renderVlanInt(id) {
+      const container = document.getElementById(`vlans_${id}`); if(!container) return;
+      const vlans = state.devices[id].vlans;
+      if(vlans.length === 0) { container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-1">Aucune interface</div>`; } 
+      else {
+        container.innerHTML = vlans.map(v => {
+          const num = parseInt(v.vid.replace(/\D/g,''));
+          const colorBg = isNaN(num) ? '#1e293b' : getVlanColor(num);
+          const colorText = isNaN(num) ? '#94a3b8' : '#000000';
+          const tooltip = isNaN(num) ? '' : getVlanName(num);
+          
+          const isHigh = (highlightedVlan && num === highlightedVlan);
+          const pulseInt = isHigh ? 'vlan-badge-highlight ring-2 ring-white z-10' : '';
+          const dimInt = (highlightedVlan && !isHigh) ? 'opacity-30' : '';
+
+          return `
+          <div class="grid grid-cols-[55px_1fr_20px] gap-2 items-center bg-slate-950 rounded p-1.5 border border-slate-700 transition-all ${dimInt}">
+            <input title="${tooltip}" class="route-input min-w-0 text-center font-black rounded vlan-input-color cursor-help transition-all duration-300 ${pulseInt}" style="background-color: ${colorBg}; color: ${isHigh ? '#000' : colorText}" value="${v.vid}" onchange="updateVlanInt('${id}', '${v.id}', 'vid', this.value)" placeholder="ID/Int">
+            <input class="route-input min-w-0" value="${v.ip}" onchange="updateVlanInt('${id}', '${v.id}', 'ip', this.value)" placeholder="IP (ex: 10.0.0.1/24)">
+            <button onmousedown="deleteVlanInt('${id}', '${v.id}', event);" class="text-slate-500 hover:text-red-400 text-sm font-bold no-print flex justify-end">✕</button>
+          </div>
+        `}).join('');
+      }
+    }
+
+    function addConfLine(id, event) { event.stopPropagation(); const type = state.devices[id].type; state.devices[id].conf.push({ id: `c_${Date.now()}`, val1: type === 'server' ? 'eth0' : '0.0.0.0/0', val2: type === 'server' ? '192.168.1.10/24' : '192.168.1.254' }); renderConf(id); }
+    function updateConf(devId, lineId, field, value) { const line = state.devices[devId].conf.find(c => c.id === lineId); if(line) line[field] = value; }
+    function deleteConfLine(devId, lineId, event) { event.stopPropagation(); state.devices[devId].conf = state.devices[devId].conf.filter(c => c.id !== lineId); renderConf(devId); }
+    
+    function renderConf(id) {
+      const container = document.getElementById(`conf_${id}`); if(!container) return;
+      const conf = state.devices[id].conf; const t = DEVICE_TYPES[state.devices[id].type];
+      const dimConf = highlightedVlan ? 'opacity-30' : '';
+      
+      if(conf.length === 0) { container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-1">Aucune configuration</div>`; } 
+      else {
+        container.innerHTML = conf.map(c => `
+          <div class="grid grid-cols-[1fr_16px_1fr_20px] gap-2 items-center bg-slate-950 rounded p-1.5 border border-slate-700 transition-all ${dimConf}">
+            <input class="route-input min-w-0" value="${c.val1}" onchange="updateConf('${id}', '${c.id}', 'val1', this.value)" placeholder="${t.col1}">
+            <span class="text-slate-600 text-sm text-center font-bold">🡒</span>
+            <input class="route-input min-w-0" value="${c.val2}" onchange="updateConf('${id}', '${c.id}', 'val2', this.value)" placeholder="${t.col2}">
+            <button onmousedown="deleteConfLine('${id}', '${c.id}', event);" class="text-slate-500 hover:text-red-400 text-sm font-bold no-print flex justify-end">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    // GESTION DU DRAG ET CLONAGE (Alt)
+    function makeDeviceDraggable(el, id) {
+      const handle = el.querySelector('.drag-handle');
+      
+      handle.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || linkingFrom) return;
+        e.stopPropagation();
+
+        let targetId = id;
+
+        // CLONAGE SI ALT EST ENFONCÉ
+        if (e.altKey) {
+            state.counter++;
+            const newId = `dev_${Date.now()}_${state.counter}`;
+            const oldDev = state.devices[id];
+            
+            // Génération de nouveaux IDs internes pour éviter les doublons
+            const newConf = oldDev.conf.map(c => ({...c, id: `c_${Math.random().toString(36).substr(2,9)}`}));
+            const newVlans = oldDev.vlans.map(v => ({...v, id: `v_${Math.random().toString(36).substr(2,9)}`}));
+
+            state.devices[newId] = {
+                ...oldDev,
+                id: newId,
+                name: oldDev.name + " (Copie)",
+                conf: newConf,
+                vlans: newVlans
+            };
+            
+            renderDevice(newId);
+            targetId = newId; // On donne le focus de déplacement au nouveau bloc
+        }
+
+        draggingDevice = targetId;
+        dragOffsetX = e.clientX / view.scale - state.devices[targetId].x;
+        dragOffsetY = e.clientY / view.scale - state.devices[targetId].y;
+        
+        const targetEl = document.getElementById(targetId);
+        if(targetEl) targetEl.style.zIndex = 100;
+      });
+    }
+
+    function startLinking(sourceId, event) {
+      event.stopPropagation(); linkingFrom = sourceId; document.body.classList.add('linking-mode'); document.getElementById('linking-indicator').classList.remove('hidden');
+      Object.keys(state.devices).forEach(id => { if (id !== sourceId && !DEVICE_TYPES[state.devices[id].type].isZone) document.getElementById(id).classList.add('link-target'); });
+    }
+    function cancelLinking() {
+      linkingFrom = null; document.body.classList.remove('linking-mode'); document.getElementById('linking-indicator').classList.add('hidden');
+      document.querySelectorAll('.device-node').forEach(n => n.classList.remove('link-target'));
+    }
+    window.addEventListener('keydown', (e) => { 
+      if (e.key === 'Escape') { cancelLinking(); if (highlightedVlan !== null) { highlightedVlan = null; drawLinks(); renderLegend(); } }
+    });
+
+    function createNewLink(fromId, toId) {
+      const newLink = { id: `link_${Date.now()}`, from: fromId, to: toId, portFrom: "", portTo: "", vlanText: "" };
+      state.links.push(newLink); drawLinks(); openModal(newLink.id, null);
+    }
+    window.updateLinkPort = function(linkId, field, value) { const link = state.links.find(l => l.id === linkId); if(link) { link[field] = value.toUpperCase(); } };
+    
+    function openModal(linkId, event) {
+      if(event) event.stopPropagation(); editingLinkId = linkId;
+      const link = state.links.find(l => l.id === linkId);
+      document.getElementById('inp-vlan-text').value = link.vlanText || "";
+      document.getElementById('link-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('inp-vlan-text').focus(), 50);
+    }
+    function closeModal() { editingLinkId = null; document.getElementById('link-modal').classList.add('hidden'); }
+    function saveLinkVlan() { const link = state.links.find(l => l.id === editingLinkId); link.vlanText = document.getElementById('inp-vlan-text').value.trim(); closeModal(); drawLinks(); }
+    function deleteLinkDirect(id, event) { event.stopPropagation(); state.links = state.links.filter(l => l.id !== id); drawLinks(); }
+    function deleteDevice(id, event) {
+      event.stopPropagation(); if(!confirm("Supprimer cet élément et ses câbles ?")) return;
+      state.links = state.links.filter(l => l.from !== id && l.to !== id); delete state.devices[id]; drawLinks(); document.getElementById(id).remove();
+    }
+    function getCenterPos(el) { const d = state.devices[el.id]; if (!d) return { x: 0, y: 0 }; return { x: d.x + el.offsetWidth / 2, y: d.y + el.offsetHeight / 2 }; }
+
+    function updateDevicesHighlight() {
+      if (highlightedVlan === null) {
+        document.querySelectorAll('.device-node').forEach(el => { el.classList.remove('dimmed'); el.style.borderColor = ''; el.style.boxShadow = ''; });
+        return;
+      }
+      
+      const vlanStr = String(highlightedVlan);
+      Object.keys(state.devices).forEach(devId => {
+        const dev = state.devices[devId]; let hasVlan = false;
+        if (DEVICE_TYPES[dev.type].isZone) return; 
+        
+        if (dev.vlans && dev.vlans.some(v => String(v.vid).replace(/\D/g,'') === vlanStr)) hasVlan = true;
+        
+        if (!hasVlan && dev.vlanTags) {
+          const parsedTags = parseVlanText(dev.vlanTags);
+          if (parsedTags && parsedTags.detectedVlans.some(v => v.id === highlightedVlan)) hasVlan = true;
+        }
+
+        if (!hasVlan) {
+          hasVlan = state.links.some(l => {
+            if (l.from !== devId && l.to !== devId) return false;
+            if (!l.vlanText) return false;
+            const parsed = parseVlanText(l.vlanText);
+            return parsed && parsed.detectedVlans.some(v => v.id === highlightedVlan);
+          });
+        }
+        
+        const el = document.getElementById(devId);
+        if (el) {
+          if (hasVlan) {
+            el.classList.remove('dimmed');
+            el.style.borderColor = getVlanColor(highlightedVlan);
+            el.style.boxShadow = `0 0 25px ${getVlanColor(highlightedVlan)}60`;
+          } else { el.classList.add('dimmed'); el.style.borderColor = ''; el.style.boxShadow = ''; }
+        }
+      });
+    }
+
+    function drawLinks() {
+      const svg = document.getElementById('cablesLayer'); const badges = document.getElementById('badgesLayer');
+      svg.innerHTML = ''; badges.innerHTML = '';
+      if (!state.linkBoxes) state.linkBoxes = {};
+
+      const groups = {};
+      state.links.forEach(l => { const pair = [l.from, l.to].sort().join('|'); if(!groups[pair]) groups[pair] = []; groups[pair].push(l); });
+
+      const normalPaths = []; const highlightedPaths = [];
+
+      Object.keys(groups).forEach(pair => {
+        const links = groups[pair];
+        const [idA, idB] = pair.split('|');
+        const d1 = document.getElementById(idA); const d2 = document.getElementById(idB);
+        if (!d1 || !d2) return;
+
+        const center1 = getCenterPos(d1); const center2 = getCenterPos(d2);
+        const isPinned = !!state.linkBoxes[pair];
+        const boxX = isPinned ? state.linkBoxes[pair].x : (center1.x + center2.x) / 2;
+        const boxY = isPinned ? state.linkBoxes[pair].y : (center1.y + center2.y) / 2;
+        const isALeft = center1.x <= center2.x;
+        const swLeft = isALeft ? d1 : d2; const swRight = isALeft ? d2 : d1;
+        const centerLeft = isALeft ? center1 : center2; const centerRight = isALeft ? center2 : center1;
+        
+        const angleL = Math.atan2(boxY - centerLeft.y, boxX - centerLeft.x); const pAngleL = angleL + Math.PI / 2;
+        const angleR = Math.atan2(centerRight.y - boxY, centerRight.x - boxX); const pAngleR = angleR + Math.PI / 2;
+
+        let boxHasHighlight = false;
+
+        const groupEl = document.createElement('div');
+        const borderClass = isPinned ? 'border-sky-500 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'border-slate-600';
+        groupEl.className = `link-group-container absolute transform -translate-x-1/2 -translate-y-1/2 -mt-[12px] bg-slate-950/90 backdrop-blur border ${borderClass} p-1.5 rounded-xl shadow-2xl flex flex-col gap-1 z-30 transition-all duration-300`;
+        groupEl.style.left = `${boxX}px`; groupEl.style.top = `${boxY}px`;
+
+        let innerHTML = `
+          <div class="flex justify-between items-center px-1 pb-1 mb-0.5 border-b border-slate-700/50 cursor-move" onmousedown="startDragLinkBox('${pair}', event)" ondblclick="resetLinkBox('${pair}', event)" title="${isPinned ? 'Double-clic pour détacher' : 'Glisser pour faire un point de routage !'}">
+            <span class="text-xs font-bold ${isPinned ? 'text-sky-400' : 'text-slate-400'} truncate max-w-[100px] pointer-events-none">${state.devices[swLeft.id].name}</span>
+            <span class="text-xs font-bold ${isPinned ? 'text-sky-400' : 'text-slate-400'} truncate max-w-[100px] text-right pointer-events-none">${state.devices[swRight.id].name}</span>
+          </div>
+        `;
+
+        links.forEach((link, index) => {
+          const offset = (index - (links.length - 1) / 2) * 34; 
+          
+          const startL_X = centerLeft.x + Math.cos(pAngleL) * offset; const startL_Y = centerLeft.y + Math.sin(pAngleL) * offset;
+          const endL_X = boxX + Math.cos(pAngleL) * offset; const endL_Y = boxY + Math.sin(pAngleL) * offset;
+          const startR_X = boxX + Math.cos(pAngleR) * offset; const startR_Y = boxY + Math.sin(pAngleR) * offset;
+          const endR_X = centerRight.x + Math.cos(pAngleR) * offset; const endR_Y = centerRight.y + Math.sin(pAngleR) * offset;
+
+          const parsedVlan = parseVlanText(link.vlanText);
+          const linkHasHighlightedVlan = highlightedVlan && parsedVlan && parsedVlan.detectedVlans.some(v => v.id === highlightedVlan);
+          if (linkHasHighlightedVlan) boxHasHighlight = true;
+
+          let cableColor = "#475569"; 
+          if (document.body.classList.contains('theme-neutral')) cableColor = "#454545";
+          if (parsedVlan && parsedVlan.detectedVlans.length === 1) cableColor = parsedVlan.detectedVlans[0].color;
+          else if (parsedVlan && parsedVlan.detectedVlans.length > 1) cableColor = "#7dd3fc";
+          else if (link.vlanText && link.vlanText.trim() !== "") cableColor = "#94a3b8"; 
+
+          if (linkHasHighlightedVlan) cableColor = getVlanColor(highlightedVlan);
+
+          const pathL = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          pathL.setAttribute('x1', startL_X); pathL.setAttribute('y1', startL_Y); pathL.setAttribute('x2', endL_X); pathL.setAttribute('y2', endL_Y);
+          pathL.setAttribute('stroke', cableColor); pathL.setAttribute('stroke-width', '3');
+          
+          const pathR = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          pathR.setAttribute('x1', startR_X); pathR.setAttribute('y1', startR_Y); pathR.setAttribute('x2', endR_X); pathR.setAttribute('y2', endR_Y);
+          pathR.setAttribute('stroke', cableColor); pathR.setAttribute('stroke-width', '3');
+          
+          if (linkHasHighlightedVlan) {
+            pathL.classList.add('vlan-path-highlight'); pathR.classList.add('vlan-path-highlight');
+            highlightedPaths.push(pathL, pathR);
+          } else {
+            if (highlightedVlan) { pathL.classList.add('dimmed'); pathR.classList.add('dimmed'); }
+            normalPaths.push(pathL, pathR);
+          }
+
+          const linkIsFromLeft = link.from === swLeft.id;
+          const portLeftField = linkIsFromLeft ? 'portFrom' : 'portTo'; const portRightField = linkIsFromLeft ? 'portTo' : 'portFrom';
+          const portLeftVal = linkIsFromLeft ? link.portFrom : link.portTo; const portRightVal = linkIsFromLeft ? link.portTo : link.portFrom;
+          const lineDimClass = (highlightedVlan && !linkHasHighlightedVlan) ? 'opacity-30' : '';
+
+          let vlanHtml = `<span class="text-xs text-slate-500 italic pointer-events-none">VLANs...</span>`;
+          if (parsedVlan) {
+            if (parsedVlan.isSingle) {
+              vlanHtml = `
+                <div class="flex flex-wrap justify-center items-center gap-1 px-1 print:hidden">${parsedVlan.badgesHtml}</div>
+                <div class="hidden print:flex flex-wrap justify-center items-center gap-1">${parsedVlan.printHtml}</div>
+              `;
+            } else {
+              vlanHtml = `
+                <div class="flex flex-wrap justify-center items-center gap-1 min-w-[30px] group-hover:hidden print:hidden">${parsedVlan.dotsHtml}</div>
+                <div class="hidden flex-wrap justify-center items-center gap-1 group-hover:flex print:hidden">${parsedVlan.badgesHtml}</div>
+                <div class="hidden print:flex flex-wrap justify-center items-center gap-1">${parsedVlan.printHtml}</div>
+              `;
+            }
+          }
+
+          innerHTML += `
+            <div class="flex items-center gap-2 bg-slate-800 p-1.5 rounded border border-slate-700 hover:border-slate-500 transition-all group ${lineDimClass}">
+              <input type="text" class="w-20 bg-slate-950 text-xs font-mono font-bold text-center text-slate-300 border border-slate-600 rounded px-1 py-1.5 outline-none" 
+                     placeholder="Port" value="${portLeftVal}" onchange="updateLinkPort('${link.id}', '${portLeftField}', this.value)">
+              
+              <div class="flex flex-col justify-center items-center cursor-pointer px-1 relative min-w-[50px] max-w-[200px]" title="Éditer les paramètres du lien" onmousedown="openModal('${link.id}', event)">
+                <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 rounded transition pointer-events-none"></div>
+                ${vlanHtml}
+              </div>
+
+              <input type="text" class="w-20 bg-slate-950 text-xs font-mono font-bold text-center text-slate-300 border border-slate-600 rounded px-1 py-1.5 outline-none" 
+                     placeholder="Port" value="${portRightVal}" onchange="updateLinkPort('${link.id}', '${portRightField}', this.value)">
+              
+              <button class="text-slate-500 hover:text-red-400 px-1 opacity-0 group-hover:opacity-100 transition no-print text-lg font-bold" onmousedown="deleteLinkDirect('${link.id}', event)">✕</button>
+            </div>
+          `;
+        });
+        
+        if (highlightedVlan && !boxHasHighlight) { groupEl.classList.add('dimmed'); }
+        groupEl.innerHTML = innerHTML; badgesLayer.appendChild(groupEl);
+      });
+
+      normalPaths.forEach(p => svg.appendChild(p)); highlightedPaths.forEach(p => svg.appendChild(p));
+      updateDevicesHighlight();
+      Object.keys(state.devices).forEach(id => { 
+        if(!DEVICE_TYPES[state.devices[id].type].isEndpoint && !DEVICE_TYPES[state.devices[id].type].isZone) { 
+          renderVlanInt(id); renderConf(id); 
+        } 
+      });
+    }
+
+    function exportJSON() {
+      const d = new Date(); const pad = (n) => n.toString().padStart(2, '0');
+      const dateStr = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const dl = document.createElement('a');
+      dl.setAttribute("href", dataStr); dl.setAttribute("download", `topo_${dateStr}.json`); dl.click();
+    }
+    
+    function importJSON(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const loaded = JSON.parse(e.target.result);
+          if (loaded.switches && !loaded.devices) { loaded.devices = loaded.switches; delete loaded.switches; Object.keys(loaded.devices).forEach(id => { loaded.devices[id].type = 'switch'; loaded.devices[id].conf = loaded.devices[id].routes || []; }); }
+          state = loaded;
+          if(!state.vlanDict) state.vlanDict = {}; if(!state.linkBoxes) state.linkBoxes = {}; 
+          highlightedVlan = null; 
+          
+          document.getElementById('devicesLayer').innerHTML = '';
+          Object.keys(state.devices).forEach(id => { 
+            if(!state.devices[id].conf) state.devices[id].conf = []; if(!state.devices[id].vlans) state.devices[id].vlans = []; if(state.devices[id].collapsed === undefined) state.devices[id].collapsed = false;
+            renderDevice(id); 
+          });
+
+          const deviceIds = Object.keys(state.devices);
+          if (deviceIds.length > 0) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            deviceIds.forEach(id => { const d = state.devices[id]; if (d.x < minX) minX = d.x; if (d.x > maxX) maxX = d.x; if (d.y < minY) minY = d.y; if (d.y > maxY) maxY = d.y; });
+            const centerX = (minX + maxX) / 2; const centerY = (minY + maxY) / 2;
+            view.scale = 1; view.panX = window.innerWidth / 2 - centerX - 150; view.panY = window.innerHeight / 2 - centerY;
+          } else { view.panX = -50000 + window.innerWidth / 2; view.panY = -50000 + window.innerHeight / 2; }
+          updateTransform(); drawLinks(); renderLegend();
+        } catch (err) { alert("Fichier corrompu."); }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function mergeJSON(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const loaded = JSON.parse(e.target.result);
+          let importedDevices = loaded.devices || loaded.switches || {};
+          let importedLinks = loaded.links || [];
+          
+          if (loaded.vlanDict) {
+            Object.keys(loaded.vlanDict).forEach(k => { if(!state.vlanDict[k]) state.vlanDict[k] = loaded.vlanDict[k]; });
+          }
+
+          const viewCenterX = (-view.panX + window.innerWidth / 2) / view.scale;
+          const viewCenterY = (-view.panY + window.innerHeight / 2) / view.scale;
+
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          const impIds = Object.keys(importedDevices);
+          if(impIds.length === 0) return;
+          
+          impIds.forEach(id => {
+            const d = importedDevices[id];
+            if (d.x < minX) minX = d.x; if (d.x > maxX) maxX = d.x;
+            if (d.y < minY) minY = d.y; if (d.y > maxY) maxY = d.y;
+          });
+          
+          const impCenterX = (minX + maxX) / 2; const impCenterY = (minY + maxY) / 2;
+          const offsetX = viewCenterX - impCenterX; const offsetY = viewCenterY - impCenterY;
+
+          const idMap = {};
+          
+          impIds.forEach(oldId => {
+            const d = importedDevices[oldId];
+            state.counter++;
+            const newId = `dev_m_${Date.now()}_${state.counter}`;
+            idMap[oldId] = newId;
+            
+            // On intègre le magnétisme 25px après fusion
+            const finalX = Math.round((d.x + offsetX) / 25) * 25;
+            const finalY = Math.round((d.y + offsetY) / 25) * 25;
+            
+            state.devices[newId] = { ...d, id: newId, x: finalX, y: finalY };
+            if(d.type === 'switch' && !d.type) state.devices[newId].type = 'switch';
+            renderDevice(newId);
+          });
+
+          importedLinks.forEach(l => {
+            if(idMap[l.from] && idMap[l.to]) {
+              state.links.push({ ...l, id: `link_m_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, from: idMap[l.from], to: idMap[l.to] });
+            }
+          });
+          
+          drawLinks(); renderLegend();
+        } catch (err) { alert("Fichier corrompu."); }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // ==========================================
+    // 🥚 EASTER EGG SECRET (WATERMARK) 🥚
+    // ==========================================
+    const titleElement = document.getElementById('app-title');
+    let clickCount = 0;
+    let clickTimeout;
+
+    if (titleElement) {
+      titleElement.addEventListener('click', () => {
+          clickCount++;
+          clearTimeout(clickTimeout);
+          
+          if(clickCount >= 3) {
+              triggerEasterEgg();
+              clickCount = 0;
+          } else {
+              clickTimeout = setTimeout(() => { clickCount = 0; }, 1000);
+          }
+      });
+    }
+
+    function triggerEasterEgg() {
+        if(document.getElementById('ee-ov')) return;
+        
+        // Texte crypté en Base64 pour ne pas le trouver avec Ctrl+F
+        const secretData = "IkonYWRvcmUgcXVhbmQgdW4gcGluZyBzZSBkw6lyb3VsZSBzYW5zIGFjY3JvYy4iPGJyPjxicj5VbmUgxZN1dnJlIG9yaWdpbmFsZSBkZSBNYcOudHJlIEplYW4tTWljaGVsIERlbWF5PGJyPjxzcGFuIHN0eWxlPSJmb250LXNpemU6MC43NWVtO29wYWNpdHk6MC43Ij4oZXQgZGUgc29uIGZpZMOobGUgc2Vydml0ZXVyIEdlbWluaSk8L3NwYW4+";
+        
+        const overlay = document.createElement('div'); 
+        overlay.id = 'ee-ov';
+        overlay.style.cssText = 'position:fixed;inset:0;background:#09090b;z-index:999999;display:flex;align-items:center;justify-content:center;color:#4ade80;font-family:monospace;font-size:2.2rem;text-align:center;text-shadow:0 0 20px #4ade80;flex-direction:column;cursor:pointer;line-height:1.5;';
+        
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes eePulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03); opacity: 0.8; } }
+            @keyframes eeBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        `;
+        overlay.appendChild(style);
+
+        const textDiv = document.createElement('div');
+        textDiv.style.animation = 'eePulse 3s ease-in-out infinite';
+        
+        // Décryptage propre qui gère les accents français (œ, é, etc.)
+        textDiv.innerHTML = decodeURIComponent(escape(atob(secretData))); 
+        overlay.appendChild(textDiv);
+        
+        const closeDiv = document.createElement('div');
+        closeDiv.style.cssText = 'font-size:1.2rem;margin-top:60px;color:#16a34a;animation: eeBounce 1.5s infinite;';
+        closeDiv.innerText = '[ CLIQUEZ N\'IMPORTE OÙ POUR FERMER ]';
+        overlay.appendChild(closeDiv);
+
+        document.body.appendChild(overlay);
+        
+        overlay.onclick = () => { 
+            overlay.remove(); 
+            if(window.eeAudio){ 
+                window.eeAudio.close(); 
+                window.eeAudio = null; 
+                clearInterval(window.eeInterval); 
+            } 
+        };
+        
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if(AudioCtx) {
+            const A = new AudioCtx();
+            window.eeAudio = A; let t = 0;
+            window.eeInterval = setInterval(() => {
+                if(A.state === 'closed') return;
+                const osc = A.createOscillator(), g = A.createGain();
+                const n = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 196.00, 220.00, 261.63, 329.63, 392.00, 329.63, 261.63, 220.00, 196.00];
+                osc.type = 'square';
+                osc.frequency.value = n[t % 16] * (t % 32 < 16 ? 1 : 0.5);
+                g.gain.setValueAtTime(0.08, A.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, A.currentTime + 0.1);
+                osc.connect(g); g.connect(A.destination);
+                osc.start(); osc.stop(A.currentTime + 0.1);
+                t++;
+            }, 110);
+        }
+    }
+
+    view.panX = -50000 + window.innerWidth / 2;
+    view.panY = -50000 + window.innerHeight / 2;
+    updateTransform();
+    renderLegend();
+  </script>
+</body>
+</html>
