@@ -9,18 +9,24 @@
     #viewport { width: 100vw; height: 100vh; position: relative; cursor: grab; }
     #viewport:active { cursor: grabbing; }
     
+    /* OPTIMISATION GPU EXTRÊME */
     #workspace {
       position: absolute; top: 0; left: 0; width: 100000px; height: 100000px;
       transform-origin: 0 0;
       background-image: radial-gradient(#334155 1px, transparent 1px);
       background-size: 25px 25px;
       transition: background-image 0.3s;
+      will-change: transform;
     }
 
-    .device-node { position: absolute; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.6); border-radius: 8px; border: 1px solid #334155; background: #1e293b; transition: width 0.2s, background-color 0.3s, border-color 0.3s, opacity 0.3s, box-shadow 0.3s; }
+    .device-node { 
+      position: absolute; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.6); border-radius: 8px; 
+      border: 1px solid #334155; background: #1e293b; 
+      transition: width 0.2s, background-color 0.3s, border-color 0.3s, opacity 0.3s, box-shadow 0.3s;
+      will-change: top, left;
+    }
     .drag-handle { cursor: move; transition: background-color 0.3s; }
     
-    /* STYLE SPÉCIFIQUE POUR LA ZONE DE TEXTE */
     .zone-node { background: transparent !important; box-shadow: none !important; border: 2px dashed #475569 !important; }
     
     body.linking-mode #viewport { cursor: crosshair !important; }
@@ -31,7 +37,7 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
 
-    .link-group-container { pointer-events: auto; transition: background-color 0.3s, border-color 0.3s, opacity 0.3s; }
+    .link-group-container { pointer-events: auto; transition: background-color 0.3s, border-color 0.3s, opacity 0.3s; will-change: top, left; }
     .link-group-container:hover { z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
 
     .route-input { background: transparent; border: none; color: #94a3b8; width: 100%; min-width: 0; outline: none; font-family: monospace; font-size: 13px; text-align: center; }
@@ -40,7 +46,6 @@
     #modal-overlay { backdrop-filter: blur(4px); }
     [title] { cursor: help; }
 
-    /* ANIMATIONS & MISE EN ÉVIDENCE VLAN */
     @keyframes path-pulse {
       0% { stroke-width: 3; filter: drop-shadow(0 0 2px currentColor); opacity: 1; }
       50% { stroke-width: 6; filter: drop-shadow(0 0 12px currentColor); opacity: 1; }
@@ -53,9 +58,10 @@
     .vlan-path-highlight { animation: path-pulse 1.5s infinite; z-index: 100; }
     .vlan-badge-highlight { animation: badge-pulse 1.5s infinite; transform: scale(1.15); z-index: 10; }
     .dimmed { opacity: 0.15 !important; transition: opacity 0.4s ease; }
-    line { transition: opacity 0.3s ease, stroke-width 0.3s ease, stroke 0.3s ease; }
+    
+    /* Optimisation du rendu des lignes SVG */
+    line { transition: opacity 0.3s ease, stroke 0.3s ease; shape-rendering: optimizeSpeed; }
 
-    /* EFFET SPLASH */
     #vlan-splash {
       position: fixed; top: 15%; left: 50%; transform: translateX(-50%) scale(0.9);
       opacity: 0; pointer-events: none; z-index: 9999;
@@ -64,7 +70,7 @@
     }
     #vlan-splash.show { opacity: 1; transform: translateX(-50%) scale(1); }
 
-    /* THÈME CLAIR PRO */
+    /* THEMES */
     body.theme-light { background-color: #f3f4f6 !important; color: #111827 !important; }
     body.theme-light #workspace { background-image: radial-gradient(#d1d5db 2px, transparent 2px) !important; }
     body.theme-light .bg-slate-900\/95, body.theme-light .bg-slate-900, body.theme-light .bg-slate-800 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: #e5e7eb !important; }
@@ -87,7 +93,6 @@
     body.theme-light button { color: #4b5563; } body.theme-light button:hover { color: #111827; }
     body.theme-light .text-sky-400 { color: #0284c7 !important; } body.theme-light .text-emerald-400 { color: #059669 !important; } body.theme-light .text-purple-400 { color: #9333ea !important; } body.theme-light .text-orange-400 { color: #ea580c !important; }
 
-    /* THÈME GRIS NEUTRE (VS CODE) */
     body.theme-neutral { background-color: #1e1e1e !important; color: #cccccc !important; }
     body.theme-neutral #workspace { background-image: radial-gradient(#333333 2px, transparent 2px) !important; }
     body.theme-neutral .bg-slate-900\/95, body.theme-neutral .bg-slate-900, body.theme-neutral .bg-slate-800 { background-color: rgba(37, 37, 38, 0.95) !important; border-color: #454545 !important; }
@@ -109,7 +114,7 @@
     body.theme-neutral .vlan-input-color[style*="#1e293b"] { background-color: #1e1e1e !important; color: #999999 !important; }
     body.theme-neutral .text-sky-400 { color: #5ccfe6 !important; } body.theme-neutral .text-emerald-400 { color: #8bd49c !important; } body.theme-neutral .text-purple-400 { color: #d4bfff !important; } body.theme-neutral .text-orange-400 { color: #ffb86c !important; }
 
-    /* MODE IMPRESSION */
+    /* MODE IMPRESSION MANUEL */
     body.print-mode { background-color: #ffffff !important; color: #000000 !important; }
     body.print-mode #workspace { background-image: none !important; background-color: #ffffff !important; }
     body.print-mode .device-node { background-color: #ffffff !important; border: 2px solid #000000 !important; box-shadow: none !important; }
@@ -124,7 +129,6 @@
     body.print-mode .link-group-container { background-color: #ffffff !important; border: 2px solid #000000 !important; box-shadow: none !important; }
     body.print-mode .link-group-container * { color: #000000 !important; }
     body.print-mode .link-group-container input { border: 1px solid #94a3b8 !important; font-weight: bold; }
-    
     body.print-mode input.vlan-input-color[style*="#1e293b"], body.print-mode input.vlan-input-color[style*="rgb(30, 41, 59)"], body.print-mode input.vlan-input-color[style*="#1e1e1e"], body.print-mode input.vlan-input-color[style*="#f9fafb"] { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1 !important; }
 
     @media print {
@@ -143,11 +147,10 @@
 
   <header id="toolbar" class="fixed top-0 left-0 right-0 bg-slate-900/95 border-b border-slate-700 px-6 py-3 flex items-center justify-between z-50 shadow-xl transition-colors">
     <div class="flex items-center gap-6">
-      <!-- C'EST ICI LE BOUTON SECRET (app-title) -->
       <span id="app-title" class="font-black text-sky-400 text-xl tracking-tight cursor-pointer hover:text-green-400 transition-colors" title="Clique 3 fois...">NETMAP <span class="text-white font-light">PRO</span></span>
       
       <div class="h-6 w-px bg-slate-700 transition-colors"></div>
-      <span class="text-xs text-slate-400 hidden xl:inline-block font-medium">💡 Astuce : <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-sky-400">Alt</kbd> + Glisser pour dupliquer</span>
+      <span class="text-xs text-slate-400 hidden xl:inline-block font-medium">💡 Astuce : <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-sky-400">Alt</kbd> + Glisser</span>
       
       <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-700 shadow-inner transition-colors ml-2">
         <button onclick="addDevice('switch')" class="px-3 py-1.5 hover:bg-slate-800 rounded text-sky-400 text-sm font-bold transition">🖧 Switch</button>
@@ -160,7 +163,7 @@
       </div>
 
       <span id="linking-indicator" class="hidden bg-sky-500/20 text-sky-400 border border-sky-500/50 px-3 py-1.5 rounded-md text-sm font-bold animate-pulse">
-        🔗 Cliquez sur l'équipement de destination... (Échap pour annuler)
+        🔗 Cliquez sur la destination... (Échap)
       </span>
     </div>
 
@@ -168,7 +171,7 @@
       <select onchange="changeTheme(this.value)" class="bg-slate-800 text-slate-300 px-3 py-2 rounded-md text-sm font-bold border border-slate-700 outline-none cursor-pointer hover:text-white transition shadow-sm">
         <option value="theme-default">🌙 Nuit (Standard)</option>
         <option value="theme-light">☁️ Clair (Pro)</option>
-        <option value="theme-neutral">💻 Gris Neutre (Code)</option>
+        <option value="theme-neutral">💻 Gris (Code)</option>
       </select>
       
       <div class="h-6 w-px bg-slate-700 mx-1 transition-colors"></div>
@@ -188,7 +191,8 @@
       <label class="text-purple-400 hover:text-purple-300 px-3 py-2 text-sm font-bold cursor-pointer transition border-l border-slate-700 pl-4 ml-1">
         ➕ Fusionner <input type="file" class="hidden" accept=".json" onchange="mergeJSON(event)">
       </label>
-      
+
+      <!-- BOUTON IMPRESSION RÉTABLI -->
       <button id="btn-print-mode" onclick="togglePrintMode()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-md text-sm font-bold shadow-lg ml-2 transition">
         🖨️ Mode Impression
       </button>
@@ -268,7 +272,7 @@
     let dragLinkPair = null;
     let dragLinkStartX = 0; let dragLinkStartY = 0; let dragLinkInitX = 0; let dragLinkInitY = 0;
     
-    // Variables globales pour le drag des équipements (optimisation)
+    // Variables globales pour le drag (optimisation)
     let draggingDevice = null;
     let dragOffsetX = 0; let dragOffsetY = 0;
 
@@ -276,6 +280,27 @@
 
     const viewport = document.getElementById('viewport');
     const workspace = document.getElementById('workspace');
+
+    // ===============================================
+    // MOTEUR DE RENDU HAUTES PERFORMANCES (60 FPS)
+    // ===============================================
+    let drawLinksRaf = null;
+    function scheduleDrawLinks() {
+      if (!drawLinksRaf) {
+        drawLinksRaf = requestAnimationFrame(() => {
+          drawLinks();
+          drawLinksRaf = null;
+        });
+      }
+    }
+
+    function stringToColor(str) {
+      if(!str || str.trim() === '') return '#94a3b8';
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+      const colors = ['#38bdf8', '#4ade80', '#facc15', '#f87171', '#c084fc', '#fb923c', '#2dd4bf', '#a3e635', '#f472b6'];
+      return colors[Math.abs(hash) % colors.length];
+    }
 
     function showSplash(vid) {
       const splash = document.getElementById('vlan-splash');
@@ -296,13 +321,13 @@
       if (event) event.stopPropagation();
       if (highlightedVlan === vid) { highlightedVlan = null; } 
       else { highlightedVlan = vid; showSplash(vid); }
-      drawLinks(); renderLegend();
+      scheduleDrawLinks(); renderLegend(); updateDevicesHighlight();
     };
 
     function updateTransform() {
       workspace.style.transform = `translate(${view.panX}px, ${view.panY}px) scale(${view.scale})`;
       document.getElementById('zoomLevel').innerText = Math.round(view.scale * 100) + '%';
-      drawLinks();
+      scheduleDrawLinks();
     }
     
     function setZoom(delta, mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2) { 
@@ -329,12 +354,9 @@
     });
 
     window.addEventListener('mousemove', (e) => { 
-      // Gestion Globale Dragging Équipement (Magnétisme 25px)
       if (draggingDevice) {
         let rawX = e.clientX / view.scale - dragOffsetX;
         let rawY = e.clientY / view.scale - dragOffsetY;
-        
-        // Snap to grid (25px)
         state.devices[draggingDevice].x = Math.round(rawX / 25) * 25;
         state.devices[draggingDevice].y = Math.round(rawY / 25) * 25;
         
@@ -343,11 +365,9 @@
           el.style.left = `${state.devices[draggingDevice].x}px`;
           el.style.top = `${state.devices[draggingDevice].y}px`;
         }
-        drawLinks();
-        return;
+        scheduleDrawLinks(); return;
       }
 
-      // Gestion Dragging Boite de lien (Magnétisme 25px)
       if (dragLinkPair) {
         const dx = (e.clientX / view.scale) - dragLinkStartX; 
         const dy = (e.clientY / view.scale) - dragLinkStartY;
@@ -357,7 +377,7 @@
         state.linkBoxes[dragLinkPair].x = Math.round(rawX / 25) * 25; 
         state.linkBoxes[dragLinkPair].y = Math.round(rawY / 25) * 25;
         
-        drawLinks(); return;
+        scheduleDrawLinks(); return;
       }
 
       if (!view.isDragging) return; 
@@ -369,11 +389,12 @@
         const el = document.getElementById(draggingDevice);
         if(el) el.style.zIndex = '';
         draggingDevice = null;
+        updateDevicesHighlight();
       }
 
       const dist = Math.hypot(e.clientX - viewportClickStartX, e.clientY - viewportClickStartY);
       if (dist < 5 && !e.target.closest('.device-node') && !e.target.closest('header') && !e.target.closest('.link-group-container') && !e.target.closest('.fixed') && !e.target.closest('.export-badge')) {
-        if (highlightedVlan !== null) { highlightedVlan = null; drawLinks(); renderLegend(); }
+        if (highlightedVlan !== null) { highlightedVlan = null; scheduleDrawLinks(); renderLegend(); updateDevicesHighlight(); }
       }
       view.isDragging = false; dragLinkPair = null; 
     });
@@ -391,29 +412,54 @@
       dragLinkInitX = state.linkBoxes[pair].x; dragLinkInitY = state.linkBoxes[pair].y;
     }
 
-    window.resetLinkBox = function(pair, event) { event.stopPropagation(); if (state.linkBoxes && state.linkBoxes[pair]) { delete state.linkBoxes[pair]; drawLinks(); } }
+    window.resetLinkBox = function(pair, event) { event.stopPropagation(); if (state.linkBoxes && state.linkBoxes[pair]) { delete state.linkBoxes[pair]; scheduleDrawLinks(); } }
 
     function changeTheme(themeName) {
       document.body.classList.remove('theme-light', 'theme-neutral');
       if (themeName !== 'theme-default') { document.body.classList.add(themeName); }
-      setTimeout(drawLinks, 50);
+      setTimeout(scheduleDrawLinks, 50);
     }
 
+    // ===============================================
+    // TOGGLE IMPRESSION MANUEL (RÉTABLI)
+    // ===============================================
     function togglePrintMode() {
-      const body = document.body; const btn = document.getElementById('btn-print-mode');
+      const body = document.body; 
+      const btn = document.getElementById('btn-print-mode');
+      
       if (!body.classList.contains('print-mode')) {
-        prePrintView = { ...view }; body.classList.add('print-mode');
-        btn.innerHTML = '🔙 Quitter Impression'; btn.classList.replace('bg-slate-600', 'bg-rose-600'); btn.classList.replace('hover:bg-slate-500', 'hover:bg-rose-500');
+        // Activation du mode
+        prePrintView = { ...view }; 
+        body.classList.add('print-mode');
+        
+        btn.innerHTML = '🔙 Quitter Impression'; 
+        btn.classList.replace('bg-slate-600', 'bg-rose-600'); 
+        btn.classList.replace('hover:bg-slate-500', 'hover:bg-rose-500');
+        
         const deviceIds = Object.keys(state.devices);
         if (deviceIds.length > 0) {
           let minX = Infinity, minY = Infinity;
-          deviceIds.forEach(id => { const d = state.devices[id]; if (d.x < minX) minX = d.x; if (d.y < minY) minY = d.y; });
-          view.scale = 1; view.panX = -minX + 50; view.panY = -minY + 100; updateTransform();
+          deviceIds.forEach(id => { 
+            const d = state.devices[id]; 
+            if (d.x < minX) minX = d.x; 
+            if (d.y < minY) minY = d.y; 
+          });
+          view.scale = 1; 
+          view.panX = -minX + 50; 
+          view.panY = -minY + 100; 
+          updateTransform();
         }
       } else {
-        body.classList.remove('print-mode'); btn.innerHTML = '🖨️ Mode Impression';
-        btn.classList.replace('bg-rose-600', 'bg-slate-600'); btn.classList.replace('hover:bg-rose-500', 'hover:bg-slate-500');
-        if (prePrintView) { view = { ...prePrintView }; updateTransform(); }
+        // Désactivation du mode
+        body.classList.remove('print-mode'); 
+        btn.innerHTML = '🖨️ Mode Impression';
+        btn.classList.replace('bg-rose-600', 'bg-slate-600'); 
+        btn.classList.replace('hover:bg-rose-500', 'hover:bg-slate-500');
+        
+        if (prePrintView) { 
+          view = { ...prePrintView }; 
+          updateTransform(); 
+        }
       }
     }
 
@@ -471,13 +517,10 @@
         const id = row.querySelector('.dict-id').value.trim(); const name = row.querySelector('.dict-name').value.trim();
         if(id && !isNaN(id)) state.vlanDict[id] = name;
       });
-      closeDictModal(); renderLegend(); drawLinks();
+      closeDictModal(); renderLegend(); scheduleDrawLinks();
     }
     function closeDictModal() { document.getElementById('dict-modal').classList.add('hidden'); }
 
-    // ==========================================
-    // PARSEUR INTELLIGENT
-    // ==========================================
     function parseVlanText(text) {
       if (!text || text.trim() === "") return null;
       
@@ -562,10 +605,10 @@
     }
 
     const DEVICE_TYPES = {
-      'switch': { icon: '🖧', color: 'bg-sky-900', border: 'border-sky-500', name: 'SWITCH', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '360px' },
-      'router': { icon: '🌐', color: 'bg-emerald-900', border: 'border-emerald-500', name: 'ROUTEUR', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '360px' },
-      'server': { icon: '🖥️', color: 'bg-purple-900', border: 'border-purple-500', name: 'SERVEUR', hasVlans: false, confTitle: 'Configuration IP', col1: 'Interface', col2: 'Adresse IP', width: '340px' },
-      'firewall': { icon: '🧱', color: 'bg-orange-900', border: 'border-orange-500', name: 'FIREWALL', hasVlans: true, confTitle: 'Routage / Règles', col1: 'Zone / Réseau', col2: 'Passerelle', width: '360px' },
+      'switch': { icon: '🖧', color: 'bg-sky-900', border: 'border-sky-500', name: 'SWITCH', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '390px' },
+      'router': { icon: '🌐', color: 'bg-emerald-900', border: 'border-emerald-500', name: 'ROUTEUR', hasVlans: true, confTitle: 'Table de routage', col1: 'Réseau', col2: 'Passerelle', width: '390px' },
+      'server': { icon: '🖥️', color: 'bg-purple-900', border: 'border-purple-500', name: 'SERVEUR', hasVlans: false, confTitle: 'Configuration IP', col1: 'Interface', col2: 'Adresse IP', width: '360px' },
+      'firewall': { icon: '🧱', color: 'bg-orange-900', border: 'border-orange-500', name: 'FIREWALL', hasVlans: true, confTitle: 'Routage / Règles', col1: 'Zone / Réseau', col2: 'Passerelle', width: '390px' },
       'endpoint': { icon: '🖲️', color: 'bg-slate-700', border: 'border-slate-500', name: 'PÉRIPHÉRIQUE', isEndpoint: true, width: '280px' },
       'zone': { icon: '📝', color: 'bg-transparent', border: 'border-transparent', name: 'TITRE DE LA ZONE', isZone: true, width: '400px' }
     };
@@ -575,8 +618,6 @@
       if (data) { ({ id, type, name, x, y, conf, vlans, collapsed, vlanTags, ip } = data); } 
       else {
         state.counter++; id = `dev_${Date.now()}`; name = `${DEVICE_TYPES[type].name}-${state.counter}`;
-        
-        // Spawn au centre mais aligné sur la grille (Magnétisme)
         let rawX = (-view.panX + window.innerWidth / 2) / view.scale - 100;
         let rawY = (-view.panY + window.innerHeight / 2) / view.scale - 50;
         x = Math.round(rawX / 25) * 25;
@@ -590,7 +631,7 @@
     }
 
     function toggleDeviceCollapse(id, event) { event.stopPropagation(); state.devices[id].collapsed = !state.devices[id].collapsed; renderDevice(id); }
-    window.updateDeviceTags = function(id, val) { state.devices[id].vlanTags = val; renderDevice(id); drawLinks(); }
+    window.updateDeviceTags = function(id, val) { state.devices[id].vlanTags = val; renderDevice(id); scheduleDrawLinks(); updateDevicesHighlight(); }
     window.updateDeviceIp = function(id, val) { state.devices[id].ip = val; }
 
     function renderDevice(id) {
@@ -685,13 +726,13 @@
 
       document.getElementById('devicesLayer').appendChild(el);
       if(!d.collapsed && !t.isEndpoint && !t.isZone) { if(t.hasVlans) renderVlanInt(id); renderConf(id); }
-      makeDeviceDraggable(el, id); setTimeout(drawLinks, 10); 
+      makeDeviceDraggable(el, id); setTimeout(scheduleDrawLinks, 10); 
     }
 
-    function updateDeviceName(id, newName) { state.devices[id].name = newName; drawLinks(); }
+    function updateDeviceName(id, newName) { state.devices[id].name = newName; scheduleDrawLinks(); }
     function addVlanInt(id, event) { event.stopPropagation(); state.devices[id].vlans.push({ id: `v_${Date.now()}`, vid: "10", ip: "192.168.10.254/24" }); renderVlanInt(id); }
-    function updateVlanInt(devId, vlanId, field, value) { const v = state.devices[devId].vlans.find(x => x.id === vlanId); if(v) v[field] = value; if(field === 'vid') renderVlanInt(devId); drawLinks(); }
-    function deleteVlanInt(devId, vlanId, event) { event.stopPropagation(); state.devices[devId].vlans = state.devices[devId].vlans.filter(x => x.id !== vlanId); renderVlanInt(devId); drawLinks(); }
+    function updateVlanInt(devId, vlanId, field, value) { const v = state.devices[devId].vlans.find(x => x.id === vlanId); if(v) v[field] = value; if(field === 'vid') renderVlanInt(devId); scheduleDrawLinks(); updateDevicesHighlight(); }
+    function deleteVlanInt(devId, vlanId, event) { event.stopPropagation(); state.devices[devId].vlans = state.devices[devId].vlans.filter(x => x.id !== vlanId); renderVlanInt(devId); scheduleDrawLinks(); updateDevicesHighlight(); }
     
     function renderVlanInt(id) {
       const container = document.getElementById(`vlans_${id}`); if(!container) return;
@@ -718,25 +759,58 @@
       }
     }
 
-    function addConfLine(id, event) { event.stopPropagation(); const type = state.devices[id].type; state.devices[id].conf.push({ id: `c_${Date.now()}`, val1: type === 'server' ? 'eth0' : '0.0.0.0/0', val2: type === 'server' ? '192.168.1.10/24' : '192.168.1.254' }); renderConf(id); }
-    function updateConf(devId, lineId, field, value) { const line = state.devices[devId].conf.find(c => c.id === lineId); if(line) line[field] = value; }
-    function deleteConfLine(devId, lineId, event) { event.stopPropagation(); state.devices[devId].conf = state.devices[devId].conf.filter(c => c.id !== lineId); renderConf(devId); }
+    function addConfLine(id, event) { 
+      event.stopPropagation(); 
+      const type = state.devices[id].type; 
+      state.devices[id].conf.push({ 
+        id: `c_${Date.now()}`, 
+        val1: type === 'server' ? 'eth0' : '0.0.0.0/0', 
+        val2: type === 'server' ? '192.168.1.10/24' : '192.168.1.254',
+        tag: ''
+      }); 
+      renderConf(id); 
+    }
+    
+    function updateConf(devId, lineId, field, value) { 
+      const line = state.devices[devId].conf.find(c => c.id === lineId); 
+      if(line) { line[field] = value; }
+      if(field === 'val2' || field === 'val1') { renderConf(devId); } 
+    }
+    
+    function deleteConfLine(devId, lineId, event) { 
+      event.stopPropagation(); 
+      state.devices[devId].conf = state.devices[devId].conf.filter(c => c.id !== lineId); 
+      renderConf(devId); 
+    }
     
     function renderConf(id) {
       const container = document.getElementById(`conf_${id}`); if(!container) return;
+      
+      state.devices[id].conf.sort((a, b) => (a.val2 || "").localeCompare(b.val2 || "") || (a.val1 || "").localeCompare(b.val1 || ""));
+      
       const conf = state.devices[id].conf; const t = DEVICE_TYPES[state.devices[id].type];
       const dimConf = highlightedVlan ? 'opacity-30' : '';
       
-      if(conf.length === 0) { container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-1">Aucune configuration</div>`; } 
-      else {
-        container.innerHTML = conf.map(c => `
-          <div class="grid grid-cols-[1fr_16px_1fr_20px] gap-2 items-center bg-slate-950 rounded p-1.5 border border-slate-700 transition-all ${dimConf}">
-            <input class="route-input min-w-0" value="${c.val1}" onchange="updateConf('${id}', '${c.id}', 'val1', this.value)" placeholder="${t.col1}">
-            <span class="text-slate-600 text-sm text-center font-bold">🡒</span>
-            <input class="route-input min-w-0" value="${c.val2}" onchange="updateConf('${id}', '${c.id}', 'val2', this.value)" placeholder="${t.col2}">
-            <button onmousedown="deleteConfLine('${id}', '${c.id}', event);" class="text-slate-500 hover:text-red-400 text-sm font-bold no-print flex justify-end">✕</button>
+      if(conf.length === 0) { 
+        container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-1">Aucune configuration</div>`; 
+      } else {
+        container.innerHTML = conf.map(c => {
+          const gwColor = (t.name === 'SERVEUR') ? '#94a3b8' : stringToColor(c.val2);
+          
+          return `
+          <div class="relative flex flex-col mt-3 first:mt-1 group">
+            <input class="absolute -top-2.5 left-2 bg-slate-950 text-[10px] placeholder-slate-600/70 border rounded px-1.5 outline-none w-auto z-10 transition-all font-bold" 
+                   style="color: ${gwColor}; border-color: ${gwColor}80; box-shadow: 0 0 8px ${gwColor}20;"
+                   placeholder="🏷️ Commentaire" value="${c.tag || ''}" onchange="updateConf('${id}', '${c.id}', 'tag', this.value)">
+            
+            <div class="grid grid-cols-[1fr_16px_1fr_20px] gap-2 items-center bg-slate-950 rounded p-1.5 pt-2.5 border border-slate-700 transition-all ${dimConf}">
+              <input class="route-input min-w-0" value="${c.val1}" onchange="updateConf('${id}', '${c.id}', 'val1', this.value)" placeholder="${t.col1}">
+              <span class="text-sm text-center font-bold transition-colors" style="color: ${gwColor}">🡒</span>
+              <input class="route-input min-w-0 font-bold transition-colors" style="color: ${gwColor}" value="${c.val2}" onchange="updateConf('${id}', '${c.id}', 'val2', this.value)" placeholder="${t.col2}">
+              <button onmousedown="deleteConfLine('${id}', '${c.id}', event);" class="text-slate-500 hover:text-red-400 text-sm font-bold no-print flex justify-end">✕</button>
+            </div>
           </div>
-        `).join('');
+        `}).join('');
       }
     }
 
@@ -750,13 +824,11 @@
 
         let targetId = id;
 
-        // CLONAGE SI ALT EST ENFONCÉ
         if (e.altKey) {
             state.counter++;
             const newId = `dev_${Date.now()}_${state.counter}`;
             const oldDev = state.devices[id];
             
-            // Génération de nouveaux IDs internes pour éviter les doublons
             const newConf = oldDev.conf.map(c => ({...c, id: `c_${Math.random().toString(36).substr(2,9)}`}));
             const newVlans = oldDev.vlans.map(v => ({...v, id: `v_${Math.random().toString(36).substr(2,9)}`}));
 
@@ -769,7 +841,7 @@
             };
             
             renderDevice(newId);
-            targetId = newId; // On donne le focus de déplacement au nouveau bloc
+            targetId = newId; 
         }
 
         draggingDevice = targetId;
@@ -790,12 +862,12 @@
       document.querySelectorAll('.device-node').forEach(n => n.classList.remove('link-target'));
     }
     window.addEventListener('keydown', (e) => { 
-      if (e.key === 'Escape') { cancelLinking(); if (highlightedVlan !== null) { highlightedVlan = null; drawLinks(); renderLegend(); } }
+      if (e.key === 'Escape') { cancelLinking(); if (highlightedVlan !== null) { highlightedVlan = null; scheduleDrawLinks(); renderLegend(); updateDevicesHighlight(); } }
     });
 
     function createNewLink(fromId, toId) {
       const newLink = { id: `link_${Date.now()}`, from: fromId, to: toId, portFrom: "", portTo: "", vlanText: "" };
-      state.links.push(newLink); drawLinks(); openModal(newLink.id, null);
+      state.links.push(newLink); scheduleDrawLinks(); openModal(newLink.id, null);
     }
     window.updateLinkPort = function(linkId, field, value) { const link = state.links.find(l => l.id === linkId); if(link) { link[field] = value.toUpperCase(); } };
     
@@ -807,11 +879,11 @@
       setTimeout(() => document.getElementById('inp-vlan-text').focus(), 50);
     }
     function closeModal() { editingLinkId = null; document.getElementById('link-modal').classList.add('hidden'); }
-    function saveLinkVlan() { const link = state.links.find(l => l.id === editingLinkId); link.vlanText = document.getElementById('inp-vlan-text').value.trim(); closeModal(); drawLinks(); }
-    function deleteLinkDirect(id, event) { event.stopPropagation(); state.links = state.links.filter(l => l.id !== id); drawLinks(); }
+    function saveLinkVlan() { const link = state.links.find(l => l.id === editingLinkId); link.vlanText = document.getElementById('inp-vlan-text').value.trim(); closeModal(); scheduleDrawLinks(); updateDevicesHighlight(); }
+    function deleteLinkDirect(id, event) { event.stopPropagation(); state.links = state.links.filter(l => l.id !== id); scheduleDrawLinks(); updateDevicesHighlight(); }
     function deleteDevice(id, event) {
       event.stopPropagation(); if(!confirm("Supprimer cet élément et ses câbles ?")) return;
-      state.links = state.links.filter(l => l.from !== id && l.to !== id); delete state.devices[id]; drawLinks(); document.getElementById(id).remove();
+      state.links = state.links.filter(l => l.from !== id && l.to !== id); delete state.devices[id]; scheduleDrawLinks(); document.getElementById(id).remove(); updateDevicesHighlight();
     }
     function getCenterPos(el) { const d = state.devices[el.id]; if (!d) return { x: 0, y: 0 }; return { x: d.x + el.offsetWidth / 2, y: d.y + el.offsetHeight / 2 }; }
 
@@ -855,13 +927,14 @@
 
     function drawLinks() {
       const svg = document.getElementById('cablesLayer'); const badges = document.getElementById('badgesLayer');
-      svg.innerHTML = ''; badges.innerHTML = '';
+      badges.innerHTML = '';
       if (!state.linkBoxes) state.linkBoxes = {};
 
       const groups = {};
       state.links.forEach(l => { const pair = [l.from, l.to].sort().join('|'); if(!groups[pair]) groups[pair] = []; groups[pair].push(l); });
 
-      const normalPaths = []; const highlightedPaths = [];
+      let svgHTML = "";
+      let svgHTMLHigh = "";
 
       Object.keys(groups).forEach(pair => {
         const links = groups[pair];
@@ -908,26 +981,23 @@
 
           let cableColor = "#475569"; 
           if (document.body.classList.contains('theme-neutral')) cableColor = "#454545";
-          if (parsedVlan && parsedVlan.detectedVlans.length === 1) cableColor = parsedVlan.detectedVlans[0].color;
-          else if (parsedVlan && parsedVlan.detectedVlans.length > 1) cableColor = "#7dd3fc";
-          else if (link.vlanText && link.vlanText.trim() !== "") cableColor = "#94a3b8"; 
+          if (document.body.classList.contains('print-mode')) cableColor = "#000000"; // Mode impression forcé en noir
+          else {
+            if (parsedVlan && parsedVlan.detectedVlans.length === 1) cableColor = parsedVlan.detectedVlans[0].color;
+            else if (parsedVlan && parsedVlan.detectedVlans.length > 1) cableColor = "#7dd3fc";
+            else if (link.vlanText && link.vlanText.trim() !== "") cableColor = "#94a3b8"; 
+            if (linkHasHighlightedVlan) cableColor = getVlanColor(highlightedVlan);
+          }
 
-          if (linkHasHighlightedVlan) cableColor = getVlanColor(highlightedVlan);
-
-          const pathL = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          pathL.setAttribute('x1', startL_X); pathL.setAttribute('y1', startL_Y); pathL.setAttribute('x2', endL_X); pathL.setAttribute('y2', endL_Y);
-          pathL.setAttribute('stroke', cableColor); pathL.setAttribute('stroke-width', '3');
+          const lineClass = linkHasHighlightedVlan ? 'vlan-path-highlight' : ((highlightedVlan && !linkHasHighlightedVlan) ? 'dimmed' : '');
           
-          const pathR = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          pathR.setAttribute('x1', startR_X); pathR.setAttribute('y1', startR_Y); pathR.setAttribute('x2', endR_X); pathR.setAttribute('y2', endR_Y);
-          pathR.setAttribute('stroke', cableColor); pathR.setAttribute('stroke-width', '3');
+          const svgLineStrL = `<line x1="${startL_X}" y1="${startL_Y}" x2="${endL_X}" y2="${endL_Y}" stroke="${cableColor}" stroke-width="3" class="${lineClass}"></line>`;
+          const svgLineStrR = `<line x1="${startR_X}" y1="${startR_Y}" x2="${endR_X}" y2="${endR_Y}" stroke="${cableColor}" stroke-width="3" class="${lineClass}"></line>`;
           
           if (linkHasHighlightedVlan) {
-            pathL.classList.add('vlan-path-highlight'); pathR.classList.add('vlan-path-highlight');
-            highlightedPaths.push(pathL, pathR);
+            svgHTMLHigh += svgLineStrL + svgLineStrR;
           } else {
-            if (highlightedVlan) { pathL.classList.add('dimmed'); pathR.classList.add('dimmed'); }
-            normalPaths.push(pathL, pathR);
+            svgHTML += svgLineStrL + svgLineStrR;
           }
 
           const linkIsFromLeft = link.from === swLeft.id;
@@ -973,13 +1043,11 @@
         groupEl.innerHTML = innerHTML; badgesLayer.appendChild(groupEl);
       });
 
-      normalPaths.forEach(p => svg.appendChild(p)); highlightedPaths.forEach(p => svg.appendChild(p));
-      updateDevicesHighlight();
-      Object.keys(state.devices).forEach(id => { 
-        if(!DEVICE_TYPES[state.devices[id].type].isEndpoint && !DEVICE_TYPES[state.devices[id].type].isZone) { 
-          renderVlanInt(id); renderConf(id); 
-        } 
-      });
+      svg.innerHTML = svgHTML + svgHTMLHigh;
+      
+      if(!view.isDragging && !draggingDevice) {
+        updateDevicesHighlight();
+      }
     }
 
     function exportJSON() {
@@ -1014,7 +1082,7 @@
             const centerX = (minX + maxX) / 2; const centerY = (minY + maxY) / 2;
             view.scale = 1; view.panX = window.innerWidth / 2 - centerX - 150; view.panY = window.innerHeight / 2 - centerY;
           } else { view.panX = -50000 + window.innerWidth / 2; view.panY = -50000 + window.innerHeight / 2; }
-          updateTransform(); drawLinks(); renderLegend();
+          updateTransform(); scheduleDrawLinks(); renderLegend(); updateDevicesHighlight();
         } catch (err) { alert("Fichier corrompu."); }
       };
       reader.readAsText(file);
@@ -1058,7 +1126,6 @@
             const newId = `dev_m_${Date.now()}_${state.counter}`;
             idMap[oldId] = newId;
             
-            // On intègre le magnétisme 25px après fusion
             const finalX = Math.round((d.x + offsetX) / 25) * 25;
             const finalY = Math.round((d.y + offsetY) / 25) * 25;
             
@@ -1073,7 +1140,7 @@
             }
           });
           
-          drawLinks(); renderLegend();
+          scheduleDrawLinks(); renderLegend(); updateDevicesHighlight();
         } catch (err) { alert("Fichier corrompu."); }
       };
       reader.readAsText(file);
@@ -1104,7 +1171,6 @@
     function triggerEasterEgg() {
         if(document.getElementById('ee-ov')) return;
         
-        // Texte crypté en Base64 pour ne pas le trouver avec Ctrl+F
         const secretData = "IkonYWRvcmUgcXVhbmQgdW4gcGluZyBzZSBkw6lyb3VsZSBzYW5zIGFjY3JvYy4iPGJyPjxicj5VbmUgxZN1dnJlIG9yaWdpbmFsZSBkZSBNYcOudHJlIEplYW4tTWljaGVsIERlbWF5PGJyPjxzcGFuIHN0eWxlPSJmb250LXNpemU6MC43NWVtO29wYWNpdHk6MC43Ij4oZXQgZGUgc29uIGZpZMOobGUgc2Vydml0ZXVyIEdlbWluaSk8L3NwYW4+";
         
         const overlay = document.createElement('div'); 
@@ -1121,7 +1187,6 @@
         const textDiv = document.createElement('div');
         textDiv.style.animation = 'eePulse 3s ease-in-out infinite';
         
-        // Décryptage propre qui gère les accents français (œ, é, etc.)
         textDiv.innerHTML = decodeURIComponent(escape(atob(secretData))); 
         overlay.appendChild(textDiv);
         
